@@ -8,7 +8,8 @@ class Estudante : public Usuario{
         std::string nivel;
     public:
         // Construtor
-        Estudante();
+        Estudante(std::string nome, std::string email, std::string senha, int nivelAcesso,
+                    std::string matricula, std::string curso, std::string nivel);
         // Destrutor
         ~Estudante();
 

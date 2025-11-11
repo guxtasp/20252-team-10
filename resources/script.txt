@@ -1,0 +1,168 @@
+CREATE DATABASE IF NOT EXISTS LabUFV;
+USE LabUFV;
+
+CREATE TABLE Usuario (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    nome VARCHAR(100) NOT NULL,
+    email VARCHAR(100) UNIQUE NOT NULL,
+    senha VARCHAR(100) NOT NULL,  
+    nivelAcesso INT NOT NULL
+);
+
+CREATE TABLE Gestor (
+    id INT PRIMARY KEY,
+    cadastrado_por_gestor_id INT, 
+    FOREIGN KEY (id) REFERENCES Usuario(id),
+    FOREIGN KEY (cadastrado_por_gestor_id) REFERENCES Gestor(id)
+);
+
+CREATE TABLE Estudante (
+    id INT PRIMARY KEY,
+    matricula VARCHAR(20) NOT NULL,
+    curso VARCHAR(100) NOT NULL,
+    nivel VARCHAR(40) NOT NULL,
+    cadastrado_por_gestor_id INT, 
+    FOREIGN KEY (id) REFERENCES Usuario(id),
+    FOREIGN KEY (cadastrado_por_gestor_id) REFERENCES Gestor(id)
+);
+
+CREATE TABLE PosGraduacao (
+    id INT PRIMARY KEY,
+    FOREIGN KEY (id) REFERENCES Estudante(id)
+);
+
+CREATE TABLE Laboratorio (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    nome VARCHAR(100) NOT NULL,
+    departamento VARCHAR(100) NOT NULL,
+    gestor_id INT,
+    FOREIGN KEY (gestor_id) REFERENCES Gestor(id)
+);
+
+CREATE TABLE Reagente (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    nome VARCHAR(100) NOT NULL,
+    quantidade INT NOT NULL,
+    quantidadeCritica DOUBLE NOT NULL,
+    localArmazenamento VARCHAR(100),
+    nivelAcesso INT NOT NULL,
+    unidadeMedida VARCHAR(30) NOT NULL,
+    laboratorio_id INT NOT NULL,
+    cadastrado_por INT NOT NULL,
+    FOREIGN KEY (laboratorio_id) REFERENCES Laboratorio(id),
+    FOREIGN KEY (cadastrado_por) REFERENCES Gestor(id)
+);
+
+CREATE TABLE ReagenteLiquido (
+    id INT PRIMARY KEY,
+    densidade DOUBLE,
+    volume DOUBLE,
+    FOREIGN KEY (id) REFERENCES Reagente(id)
+);
+
+CREATE TABLE ReagenteSolido (
+    id INT PRIMARY KEY,
+    massa DOUBLE,
+    estadoFisico VARCHAR(50),
+    FOREIGN KEY (id) REFERENCES Reagente(id)
+);
+
+CREATE TABLE Retirada (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    usuario_id INT NOT NULL,
+    reagente_id INT NOT NULL,
+    dataHoraRetirada DATETIME NOT NULL,
+    quantidadeRetirada INT NOT NULL,
+    FOREIGN KEY (usuario_id) REFERENCES Usuario(id),
+    FOREIGN KEY (reagente_id) REFERENCES Reagente(id)
+);
+
+CREATE TABLE Alerta (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    gestor_id INT NOT NULL,
+    reagente_id INT NOT NULL,
+    dataHoraEmissao DATETIME NOT NULL,
+    tipo VARCHAR(50),
+    situacao VARCHAR(50),
+    FOREIGN KEY (gestor_id) REFERENCES Gestor(id),
+    FOREIGN KEY (reagente_id) REFERENCES Reagente(id)
+);
+
+CREATE TABLE Associado (
+    estudante_id INT NOT NULL,
+    laboratorio_id INT NOT NULL,
+    papel VARCHAR(50) NOT NULL,
+    PRIMARY KEY (estudante_id, laboratorio_id),
+    FOREIGN KEY (estudante_id) REFERENCES Estudante(id),
+    FOREIGN KEY (laboratorio_id) REFERENCES Laboratorio(id)
+);
+
+-- ==========================
+-- DADOS DE EXEMPLO COM SENHAS
+-- ==========================
+
+-- Usuários Gestores
+INSERT INTO Usuario (nome, email, senha, nivelAcesso) VALUES
+('Alice Silva', 'alice@ufv.br', 'senhaAlice123', 2),
+('Bruno Costa', 'bruno@ufv.br', 'senhaBruno123', 2),
+('Carla Souza', 'carla@ufv.br', 'senhaCarla123', 2);
+
+-- Gestores
+INSERT INTO Gestor (id, cadastrado_por_gestor_id) VALUES
+(1, NULL),
+(2, 1),
+(3, 1);
+
+-- Usuários Estudantes
+INSERT INTO Usuario (nome, email, senha, nivelAcesso) VALUES
+('Daniel Lima', 'daniel@ufv.br', 'senhaDaniel123', 1),
+('Eva Martins', 'eva@ufv.br', 'senhaEva123', 1),
+('Felipe Rocha', 'felipe@ufv.br', 'senhaFelipe123', 1);
+
+-- Estudantes
+INSERT INTO Estudante (id, matricula, curso, nivel, cadastrado_por_gestor_id) VALUES
+(4, '20250001', 'Engenharia Química', 'Graduação', 2),
+(5, '20250002', 'Biotecnologia', 'Graduação', 3),
+(6, '20250003', 'Química', 'Pós-Graduação', 2);
+
+-- Pós-Graduação
+INSERT INTO PosGraduacao (id) VALUES
+(6);
+
+-- Laboratórios
+INSERT INTO Laboratorio (nome, departamento, gestor_id) VALUES
+('Lab de Química Orgânica', 'Química', 1),
+('Lab de Biotecnologia', 'Biotecnologia', 2);
+
+-- Reagentes
+INSERT INTO Reagente (nome, quantidade, quantidadeCritica, localArmazenamento, nivelAcesso, unidadeMedida, laboratorio_id, cadastrado_por) VALUES
+('Ácido Sulfúrico', 5000, 1000, 'Armário 1', 2, 'mL', 1, 1),
+('Etanol 70%', 2000, 500, 'Armário 2', 1, 'mL', 1, 2),
+('Cloreto de Sódio', 3000, 500, 'Armário 3', 1, 'g', 2, 3);
+
+-- Reagentes Especiais
+INSERT INTO ReagenteLiquido (id, densidade, volume) VALUES
+(1, 1.84, 5000),
+(2, 0.789, 2000);
+
+INSERT INTO ReagenteSolido (id, massa, estadoFisico) VALUES
+(3, 3000, 'Sólido');
+
+-- Retiradas
+INSERT INTO Retirada (usuario_id, reagente_id, dataHoraRetirada, quantidadeRetirada) VALUES
+(4, 1, '2025-11-10 09:00:00', 100),
+(5, 2, '2025-11-10 10:00:00', 50),
+(6, 3, '2025-11-10 11:00:00', 200);
+
+-- Alertas
+INSERT INTO Alerta (gestor_id, reagente_id, dataHoraEmissao, tipo, situacao) VALUES
+(1, 1, '2025-11-10 08:00:00', 'Crítico', 'Aberto'),
+(2, 2, '2025-11-10 08:30:00', 'Baixo Estoque', 'Aberto'),
+(3, 3, '2025-11-10 09:00:00', 'Crítico', 'Fechado');
+
+-- Associados
+INSERT INTO Associado (estudante_id, laboratorio_id, papel) VALUES
+(4, 1, 'Pesquisador'),
+(5, 2, 'Pesquisador'),
+(6, 1, 'Pesquisador');
+-- ==========================

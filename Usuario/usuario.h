@@ -1,30 +1,38 @@
+#ifndef USUARIO_H
+#define USUARIO_H
+
 #include <string>
+
 class Usuario{
     private:
+        std::string senha; 
         std::string nome;
         std::string email;
-        std::string senha;
         int id;
         int nivelAcesso;
-        std::string getSenha();
     public:
-    //Construtor
-    Usuario(int id, std::string nome, std::string email, std::string senha, int nivelAcesso);
-    //Destrutor
-    ~Usuario();
+        //Construtor
+        Usuario(int id, std::string nome, std::string email, std::string senha, int nivelAcesso);
+        //Destrutor
+        ~Usuario();
 
-    // Gets
-    std::string getNome();
-    std::string getEmail();
-    int getId();
-    int getNivelAcesso();
+        // Gets
+        virtual std::string getNome() const;
+        virtual std::string getEmail() const;
+        virtual int getId() const;
+        virtual int getNivelAcesso() const;
 
-    //Sets
-    void setNome(std::string nome);
-    void setEmail(std::string email);
-    void setNivelAcesso(int id);
+        //Sets
+        virtual void setNome(std::string nome);
+        virtual void setEmail(std::string email);
+        virtual void setId(int id);
+        virtual void setNivelAcesso(int nivelAcesso);
 
-    // Demais 
-    void detalharPerfil();
-    void fazerLogin();
+        // Demais 
+        virtual void detalharPerfil();
+        virtual void fazerLogin();
+        bool verificarSenha(std::string senha);
+        void alterarSenha(std::string senhaAntiga, std::string senhaNova);
 };
+
+#endif
