@@ -4,8 +4,8 @@
 #include <iostream>
 
 // Construtor
-Gestor::Gestor(std::string nome, std::string email, std::string senha, int nivelAcesso, mysqlx::abi2::r0::Schema* database) : 
-    Usuario(-1, nome, email, senha, nivelAcesso), db(database) {};
+Gestor::Gestor(std::string nome, std::string email, std::string senha, int nivelAcesso, Schema* db) : 
+    Usuario(nome, email, senha, nivelAcesso, db) {};
 
 // Destrutor
 Gestor::~Gestor() {}
@@ -83,8 +83,61 @@ void Gestor::cadastrarUsuario() {
 }
 
 void Gestor::deletarUsuario() {
-    std::cout << "Usuário deletado com sucesso!" << std::endl;
+    std::cout << "Digite o email do usuário a ser deletado: ";
+    std::string email;
+    std::cin >> email;
+
+    try{
+        //Busca o usuário no banco de dados
+        Table usuarioTable = db->getTable("Usuario");
+        RowResult result = usuarioTable.select("id", "nivelAcesso")
+                                .where("email = :email")
+                                .bind("email", email)
+                                .execute();
+        
+        //Caso não encontre o usuário com o email fornecido                      
+        if (result.count() == 0) {
+            std::cout << "Usuário com email " << email << " não encontrado." << std::endl;
+            return;
+        }
+        Row row = result.fetchOne();//pega a primeira linha do resultado
+        int usuarioId = row[0];// ID do usuário a ser deletado
+        int nivelAcesso = row[1];// Nível de acesso do usuário a ser deletado
+        
+        //Deleta das tabelas especializadas conforme o tipo de usuário
+        if (nivelAcesso == 1) { // Gestor
+            db->getTable("Gestor")
+                .remove()
+                .where("id = :id")
+                .bind("id", usuarioId)
+                .execute();
+        } else if (nivelAcesso == 2 || nivelAcesso == 3) { // Pos-Graduando ou Aluno de Graduacao
+            db->getTable("Estudante")
+                .remove()
+                .where("id = :id")
+                .bind("id", usuarioId)
+                .execute();
+
+            if (nivelAcesso == 2) { // Pos-Graduando
+                db->getTable("PosGraduacao")
+                    .remove()
+                    .where("id = :id")
+                    .bind("id", usuarioId)
+                    .execute();
+            }
+        }
+        //Deleta da tabela base Usuario
+        usuarioTable.remove()
+                    .where("id = :id")
+                    .bind("id", usuarioId)
+                    .execute();
+        
+        std::cout << "Usuário deletado com sucesso!" << std::endl;// Mensagem de sucesso
+    } catch (const mysqlx::Error &err) {
+        std::cerr << "Erro ao deletar usuário: " << err.what() << std::endl;//mensagem de erro
+    }
 }
+
 
 void Gestor::listarUsuarios() {
     std::cout << "\n=== LISTANDO USUÁRIOS (via Gestor) ===" << std::endl;

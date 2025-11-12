@@ -7,11 +7,9 @@
 using namespace mysqlx;
 
 class Gestor : public Usuario{
-    private:
-        Schema* db; // Ponteiro para o esquema do banco de dados    
     public:
         //Construtor
-        Gestor(std::string nome, std::string email, std::string senha, int nivelAcesso, Schema* database);
+        Gestor(std::string nome, std::string email, std::string senha, int nivelAcesso, Schema* db);
 
         // Destrutor
         ~Gestor();
