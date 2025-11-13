@@ -45,7 +45,7 @@ CREATE TABLE Reagente (
     quantidade INT NOT NULL,
     quantidadeCritica DOUBLE NOT NULL,
     referencia VARCHAR(50) UNIQUE NOT NULL,
-    
+    marca VARCHAR(50) NOT NULL,
     localArmazenamento VARCHAR(100),
     nivelAcesso INT NOT NULL,
     unidadeMedida VARCHAR(30) NOT NULL,

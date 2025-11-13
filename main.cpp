@@ -17,6 +17,7 @@ int main() {
         // Verifica se a conexão e o esquema foram inicializados corretamente
         if (!session || !db) {
                 throw std::runtime_error("Falha ao inicializar a conexão com o banco de dados.");
+                return 1;
         }
 
         // ===================== Inicializando o Gestor Admin =====================
