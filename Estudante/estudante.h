@@ -2,29 +2,30 @@
 #define CLASSE_ESTUDANTE
 #include "../Usuario/usuario.h"
 #include <string>
-#include <mysql-cppconn-8/mysqlx/xdevapi.h>
+#include <mysql-cppconn/mysqlx/xdevapi.h>
 
-class Estudante : public Usuario{
-    private:    
-        std::string matricula;
-        std::string curso;
-        std::string nivel;
-    public:
-        // Construtor
-        Estudante(std::string nome, std::string email, std::string senha, int nivelAcesso, Schema* db,
-                std::string matricula, std::string curso, std::string nivel);
-        // Destrutor
-        ~Estudante();
+class Estudante : public Usuario
+{
+private:
+    std::string matricula;
+    std::string curso;
+    std::string nivel;
 
-        //Gets
-        std::string getMatricula();
-        std::string getCurso();
-        std::string getNivel();
+public:
+    // Construtor
+    Estudante(std::string nome, std::string email, std::string senha, int nivelAcesso, Schema *db,
+              std::string matricula, std::string curso, std::string nivel);
+    // Destrutor
+    ~Estudante();
 
-        //Sets
-        void setMatricula(std::string matricula);
-        void setCurso(std::string curso);
-        void setNivel(std::string nivel);
+    // Gets
+    std::string getMatricula();
+    std::string getCurso();
+    std::string getNivel();
 
+    // Sets
+    void setMatricula(std::string matricula);
+    void setCurso(std::string curso);
+    void setNivel(std::string nivel);
 };
 #endif
