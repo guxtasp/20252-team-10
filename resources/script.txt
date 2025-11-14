@@ -9,9 +9,17 @@ CREATE TABLE Usuario (
     nivelAcesso INT NOT NULL
 );
 
+CREATE TABLE Laboratorio (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    nome VARCHAR(100) NOT NULL,
+    departamento VARCHAR(100) NOT NULL
+);
+
 CREATE TABLE Gestor (
     id INT PRIMARY KEY,
     cadastrado_por_gestor_id INT, 
+    laboratorio_id INT,
+	FOREIGN KEY (laboratorio_id) REFERENCES Laboratorio(id),
     FOREIGN KEY (id) REFERENCES Usuario(id),
     FOREIGN KEY (cadastrado_por_gestor_id) REFERENCES Gestor(id)
 );
@@ -31,13 +39,7 @@ CREATE TABLE PosGraduacao (
     FOREIGN KEY (id) REFERENCES Estudante(id)
 );
 
-CREATE TABLE Laboratorio (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    nome VARCHAR(100) NOT NULL,
-    departamento VARCHAR(100) NOT NULL,
-    gestor_id INT,
-    FOREIGN KEY (gestor_id) REFERENCES Gestor(id)
-);
+
 
 CREATE TABLE Reagente (
     id INT AUTO_INCREMENT PRIMARY KEY,
@@ -99,72 +101,79 @@ CREATE TABLE Associado (
     FOREIGN KEY (laboratorio_id) REFERENCES Laboratorio(id)
 );
 
--- ==========================
--- DADOS DE EXEMPLO COM SENHAS
--- ==========================
+-- ============================
+-- DADOS FICTÍCIOS
+-- ============================
 
--- Usuários Gestores
+-- Usuários
 INSERT INTO Usuario (nome, email, senha, nivelAcesso) VALUES
-('Alice Silva', 'alice@ufv.br', 'senhaAlice123', 2),
-('Bruno Costa', 'bruno@ufv.br', 'senhaBruno123', 2),
-('Carla Souza', 'carla@ufv.br', 'senhaCarla123', 2);
+('Ana Souza', 'ana.souza@ufv.br', 'ana123', 1),
+('Bruno Lima', 'bruno.lima@ufv.br', 'bruno456', 1),
+('Carla Mendes', 'carla.mendes@ufv.br', 'carla789', 2),
+('Diego Nunes', 'diego.nunes@ufv.br', 'diego321', 2),
+('Elisa Torres', 'elisa.torres@ufv.br', 'elisa654', 3),
+('Fernando Alves', 'fernando.alves@ufv.br', 'fer111', 3),
+('Gabriela Silva', 'gabriela.silva@ufv.br', 'gabi222', 3),
+('Henrique Duarte', 'henrique.duarte@ufv.br', 'henri333', 2),
+('Isabela Costa', 'isabela.costa@ufv.br', 'isa444', 3),
+('João Martins', 'joao.martins@ufv.br', 'joao555', 1);
+
+-- Laboratórios
+INSERT INTO Laboratorio (nome, departamento) VALUES
+('Laboratório de Química Geral', 'Química'),
+('Laboratório de Física Aplicada', 'Física'),
+('Laboratório de Biologia Molecular', 'Biologia'),
+('Laboratório de Robótica', 'Engenharia'),
+('Laboratório de Microscopia', 'Biologia');
 
 -- Gestores
-INSERT INTO Gestor (id, cadastrado_por_gestor_id) VALUES
-(1, NULL),
-(2, 1),
-(3, 1);
-
--- Usuários Estudantes
-INSERT INTO Usuario (nome, email, senha, nivelAcesso) VALUES
-('Daniel Lima', 'daniel@ufv.br', 'senhaDaniel123', 1),
-('Eva Martins', 'eva@ufv.br', 'senhaEva123', 1),
-('Felipe Rocha', 'felipe@ufv.br', 'senhaFelipe123', 1);
+INSERT INTO Gestor (id, cadastrado_por_gestor_id, laboratorio_id) VALUES
+(1, NULL, 1),
+(2, 1, 2),
+(10, 1, 4);
 
 -- Estudantes
 INSERT INTO Estudante (id, matricula, curso, nivel, cadastrado_por_gestor_id) VALUES
-(4, '20250001', 'Engenharia Química', 'Graduação', 2),
-(5, '20250002', 'Biotecnologia', 'Graduação', 3),
-(6, '20250003', 'Química', 'Pós-Graduação', 2);
+(3, '2025001', 'Engenharia Química', 'Graduação', 1),
+(4, '2025002', 'Ciências Biológicas', 'Graduação', 2),
+(5, '2025003', 'Medicina Veterinária', 'Pós-Graduação', 2),
+(6, '2025004', 'Engenharia Mecânica', 'Graduação', 10),
+(7, '2025005', 'Biotecnologia', 'Pós-Graduação', 10),
+(8, '2025006', 'Farmácia', 'Graduação', 1),
+(9, '2025007', 'Química', 'Graduação', 2);
 
 -- Pós-Graduação
 INSERT INTO PosGraduacao (id) VALUES
-(6);
-
--- Laboratórios
-INSERT INTO Laboratorio (nome, departamento, gestor_id) VALUES
-('Lab de Química Orgânica', 'Química', 1),
-('Lab de Biotecnologia', 'Biotecnologia', 2);
+(5),
+(7);
 
 -- Reagentes
-INSERT INTO Reagente (nome, quantidade, quantidadeCritica, localArmazenamento, nivelAcesso, unidadeMedida, laboratorio_id, cadastrado_por) VALUES
-('Ácido Sulfúrico', 5000, 1000, 'Armário 1', 2, 'mL', 1, 1),
-('Etanol 70%', 2000, 500, 'Armário 2', 1, 'mL', 1, 2),
-('Cloreto de Sódio', 3000, 500, 'Armário 3', 1, 'g', 2, 3);
+INSERT INTO Reagente (nome, quantidade, quantidadeCritica, referencia, marca, localArmazenamento, nivelAcesso, unidadeMedida, laboratorio_id, cadastrado_por) VALUES
+('Ácido Sulfúrico', 500, 100, 'REF001', 'Sigma-Aldrich', 'Armário Química', 1, 'mL', 1, 1),
+('Hidróxido de Sódio', 1000, 200, 'REF002', 'Synth', 'Armário Química', 1, 'g', 1, 1),
+('Etanol 70%', 2000, 500, 'REF003', 'QuimLab', 'Armário Química', 2, 'mL', 1, 1),
+('Solução Tampão pH 7', 500, 100, 'REF004', 'Neon', 'Geladeira Bio', 2, 'mL', 3, 2),
+('Agarose', 250, 50, 'REF005', 'Invitrogen', 'Geladeira Bio', 2, 'g', 3, 2),
+('Corante Cristal Violeta', 200, 50, 'REF006', 'Kasvi', 'Armário Bio', 3, 'mL', 5, 10);
 
--- Reagentes Especiais
+-- Reagentes Líquidos
 INSERT INTO ReagenteLiquido (id, densidade, volume) VALUES
-(1, 1.84, 5000),
-(2, 0.789, 2000);
+(1, 1.84, 500),
+(3, 0.79, 2000),
+(4, 1.0, 500),
+(6, 1.05, 200);
 
+-- Reagentes Sólidos
 INSERT INTO ReagenteSolido (id, massa, estadoFisico) VALUES
-(3, 3000, 'Sólido');
+(2, 1000, 'Sólido'),
+(5, 250, 'Sólido');
 
--- Retiradas
-INSERT INTO Retirada (usuario_id, reagente_id, dataHoraRetirada, quantidadeRetirada) VALUES
-(4, 1, '2025-11-10 09:00:00', 100),
-(5, 2, '2025-11-10 10:00:00', 50),
-(6, 3, '2025-11-10 11:00:00', 200);
-
--- Alertas
-INSERT INTO Alerta (gestor_id, reagente_id, dataHoraEmissao, tipo, situacao) VALUES
-(1, 1, '2025-11-10 08:00:00', 'Crítico', 'Aberto'),
-(2, 2, '2025-11-10 08:30:00', 'Baixo Estoque', 'Aberto'),
-(3, 3, '2025-11-10 09:00:00', 'Crítico', 'Fechado');
-
--- Associados
+-- Associados (Estudante x Laboratório)
 INSERT INTO Associado (estudante_id, laboratorio_id, papel) VALUES
-(4, 1, 'Pesquisador'),
-(5, 2, 'Pesquisador'),
-(6, 1, 'Pesquisador');
--- ==========================
+(3, 1, 'Pesquisador'),
+(4, 3, 'Pesquisador'),
+(5, 3, 'Pós-Graduando'),
+(6, 4, 'Pesquisador'),
+(7, 4, 'Pós-Graduando'),
+(8, 5, 'Pesquisador'),
+(9, 1, 'Pesquisador');

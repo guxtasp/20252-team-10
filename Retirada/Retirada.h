@@ -2,8 +2,8 @@
 #define RETIRADA_H
 
 #include <string>
-#include "Usuario.h"
-#include "Reagente.h"
+#include "../Usuario/usuario.h"
+#include "../Reagente/reagente.h"
 
 class Retirada {
 private:
@@ -33,3 +33,4 @@ public:
     //representação em string
     std::string toString() const;     
 };
+#endif 

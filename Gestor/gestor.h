@@ -2,11 +2,14 @@
 #define CLASSE_GESTOR
 
 #include "../Usuario/usuario.h"
+#include "../Laboratorio/Laboratorio.h"
 #include <string>
-#include <mysql-cppconn-8/mysqlx/xdevapi.h>
+#include <mysql-cppconn/mysqlx/xdevapi.h>
 using namespace mysqlx;
 
 class Gestor : public Usuario{
+    private:
+        Laboratorio * laboratorio = nullptr;
     public:
         //Construtor
         Gestor(std::string nome, std::string email, std::string senha, int nivelAcesso, Schema* db);
@@ -18,6 +21,7 @@ class Gestor : public Usuario{
         void cadastrarUsuario();
         void deletarUsuario();
         void listarUsuarios();
+        void associarLaboratorio();
 };
 
 #endif

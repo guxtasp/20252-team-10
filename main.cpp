@@ -3,7 +3,31 @@
 #include "Usuario/usuario.h"
 #include "Estudante/estudante.h"
 #include "PosGraduacao/posgraduacao.h"
+#include "Laboratorio/Laboratorio.h"
 #include <iostream>
+using namespace mysqlx;
+
+void menuGestor(Gestor* gestor) {
+    int opcao = 0;
+    do {
+            std::cout << "\n===== Menu Gestor =====\n";
+            std::cout << "1. Associar Laboratório\n";
+            std::cout << "0. Sair\n";
+            std::cout << "Escolha uma opção: ";
+            std::cin >> opcao;
+
+            switch(opcao) {
+                case 1:
+                    gestor->associarLaboratorio();
+                    break;
+                case 0:
+                    std::cout << "Saindo...\n";
+                    break;
+                default:
+                    std::cout << "Opção inválida! Tente novamente.\n";
+            }
+        } while(opcao != 0);
+};
 
 int main() {
     Schema* db = nullptr;
@@ -60,6 +84,7 @@ int main() {
     }    
     // ===================== Sistema =====================
     // ===================== Login =====================
+    Laboratorio::listarLaboratorios(db); // Carrega os laboratorios
     std::cout << "======Sejam bem-vindo ao LabUFV!======\n" << std::endl;
     std::cout << "Para realizar qualquer atividade, é necessário fazer Login\n" << std::endl;
     std::string email, senha; // Variáveis para armazenar as credenciais de login
@@ -139,5 +164,19 @@ int main() {
                 continue; // Volta ao início do loop em caso de erro
             }
     }
+        if(usuarioLogado) {
+            if(usuarioLogado->getNivelAcesso() == 1){ 
+            //Converte o ponteiro inteligente do tipo Usuario para do tipo Gestor
+            // Isso é para acessar os metodos da classe Gestor
+            Gestor *gestor = dynamic_cast<Gestor *>(usuarioLogado.get()); //Retorna o ponteiro do tipo Uusario e converte como gestor
+            menuGestor(gestor); // Acessa o menu de gestor
+            }
+            else{
+                std::cout << "Versão não disponivel no momento.\n";
+            }
+        }
+
+    // Limpa todos os laboratórios alocados dinamicamente
+    Laboratorio::limparLaboratorios();
     return 0;
 }

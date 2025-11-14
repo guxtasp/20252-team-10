@@ -1,5 +1,6 @@
 #include "../Usuario/usuario.h"
 #include "../Gestor/gestor.h"
+#include "../Laboratorio/Laboratorio.h"
 #include <string>
 #include <iostream>
 
@@ -146,3 +147,86 @@ void Gestor::listarUsuarios() {
     std::cout << "Nível de Acesso: " << getNivelAcesso() << std::endl;
     std::cout << "========================================\n" << std::endl;
 }
+
+// Associa gestor ao laboratorio
+void Gestor::associarLaboratorio(){
+    // Verifica se o gestor já está associado a um laboratório
+    if (this->laboratorio != nullptr) {
+        std::cout << "O gestor já está associado em laboratório: "
+                    << this->laboratorio->getNome() << std::endl; // E informa qual 
+        return;
+    }
+
+    //Verifica se no DB esta associado
+    Table table = this->db->getTable("Gestor"); // Obtém a tabela "Gestor"
+    RowResult result = table.select("laboratorio_id") // Seleciona a coluna "laboratorio_id"
+                            .where("id = :id")       // Filtra pelo ID do gestor
+                            .bind("id", this->getId()) // Substitui o parâmetro ":id"
+                            .execute();              // Executa a consulta
+    Row row = result.fetchOne(); // Busca a primeira linha do resultado
+
+    if (!row.isNull()) {  // existe laboratório no banco
+        int idLaboratorioBD = row[0];
+        // Caso memória não esteja sincronizada, for divergente do bd e do objeto
+        if (this->laboratorio == nullptr || this->laboratorio->getId() != idLaboratorioBD) {
+             // Percorre todos os laboratórios carregados em memória
+            for (int i = 0; i < Laboratorio::laboratorios.size(); i++) {
+                if (Laboratorio::laboratorios[i]->getId() == idLaboratorioBD) {
+                    this->laboratorio = Laboratorio::laboratorios[i]; // Atualiza objeto em memória
+                    break; // Sai do loop após encontrar
+                }
+            }
+        }
+        // Imprime informação sobre a associação existente
+        std::cout << "O gestor já está associado a um laboratório no banco de dados (ID: " 
+                    << idLaboratorioBD << "- "<< this->laboratorio->getNome()  << ").\n";
+        return;   // Sai do método, não associa novamente  
+    }
+
+
+    //Verifica se há laboratorios instanciados
+    if (Laboratorio::laboratorios.empty()) {
+        std::cout << "Nenhum laboratório carregado. \n";
+        return;
+    }
+    //Imprime os laboratórios cadastrados
+    Laboratorio::imprimirLaboratorios();
+
+    //Usuario escolhe qual laboratorio associar
+    int id;
+    std::cout << "\nDigite o ID do laboratório que deseja gerenciar: ";
+    std::cin >> id;
+
+    //Variavel armazena o laboratorio escolhido pelo gestor
+    Laboratorio* escolhido = nullptr;
+    //Busca em laboratorios cadastrados baseado no ID
+    for (int i = 0; i < Laboratorio::laboratorios.size(); i++) {
+        Laboratorio* laboratorio = Laboratorio::laboratorios[i]; // armazena o ponteiro do laboratorio na posicao i
+        if (laboratorio->getId() == id) { // Quando o id do escolhido for igual dos armazenado
+            escolhido = laboratorio; //armazena o ponteiro
+            break; //Para a iteração
+        }
+    }
+    if (escolhido == nullptr) {
+        std::cout << "Laboratório não encontrado.\n";
+        return;
+    }
+    // Associa ao gestor, armazena no objeto
+    this->laboratorio = escolhido;
+    //Adiciona o gestor dentro do laboratorio (armazena no vetor de gestores)
+    escolhido->adicionarGestor(this);
+
+    // Atualiza no DB 
+    table = this->db->getTable("Gestor"); // Obtém a tabela novamente
+    table.update()
+         .set("laboratorio_id", id)       // Define o novo ID do laboratório
+         .where("id = :id")               // Aplica a atualização ao gestor correto
+         .bind("id", this->getId())       // Substitui o parâmetro ":id"
+         .execute();                      // Executa a atualização
+    //Confirmação para o usuário
+    std::cout << "\nGestor gerencia o laboratório: "
+                << escolhido->getNome()
+                << std::endl;
+
+}
+

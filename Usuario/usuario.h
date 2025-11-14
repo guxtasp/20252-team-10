@@ -2,7 +2,7 @@
 #define USUARIO_H
 
 #include <string>
-#include <mysql-cppcon/mysqlx/xdevapi.h>
+#include <mysql-cppconn/mysqlx/xdevapi.h>
 using namespace mysqlx;
 
 class Usuario
@@ -21,7 +21,7 @@ public:
     Usuario(std::string nome, std::string email, std::string senha, int nivelAcesso, Schema *db); // Com os parametros
     Usuario();                                                                                    // Construtor sem parâmetros
     // Destrutor
-    ~Usuario();
+    virtual ~Usuario();
 
     // Gets
     // Retorna nome
