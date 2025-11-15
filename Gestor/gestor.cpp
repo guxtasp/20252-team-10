@@ -5,7 +5,11 @@
 
 // Construtor
 Gestor::Gestor(std::string nome, std::string email, std::string senha, int nivelAcesso, Schema* db) : 
-    Usuario(nome, email, senha, nivelAcesso, db) {};
+    Usuario(nome, email, senha, nivelAcesso, db) {
+
+    //Inicializa o ponteiro como nulo 
+    this->_meuLaboratorio = nullptr;
+    };
 
 // Destrutor
 Gestor::~Gestor() {}
@@ -145,4 +149,25 @@ void Gestor::listarUsuarios() {
     std::cout << "Email do Gestor: " << getEmail() << std::endl;
     std::cout << "Nível de Acesso: " << getNivelAcesso() << std::endl;
     std::cout << "========================================\n" << std::endl;
+}
+
+// Metodo para vincular o gestor a um laboratorio
+void Gestor::setLaboratorio(Laboratorio* lab) {
+    this->_meuLaboratorio = lab;
+}
+
+//implementaçao do metodo para cadastrar reagente
+void Gestor::cadastrarReagente(Reagente* novoReagente) {
+    
+    // O Gestor so pode cadastrar reagente se ele estiver gerenciando um laboratorio
+    if (this->_meuLaboratorio == nullptr) {
+        std::cerr << "ERRO (Gestor): Nao e possivel cadastrar. Gestor nao esta vinculado a um laboratorio." << std::endl;
+        return; 
+    }
+//
+    // O Gestor chama o metodo adicionarReagente do Laboratorio que ele gerencia
+    std::string resultadoLab = this->_meuLaboratorio->adicionarReagente(novoReagente);
+
+    // Imprime a confirmacao ou a mensagem de erro que o metodo do Laboratorio retornou.
+    std::cout << resultadoLab << std::endl;
 }

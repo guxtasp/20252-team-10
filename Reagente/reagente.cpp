@@ -2,10 +2,6 @@
 #include <stdexcept>
 #include <iostream> 
 
-
-// inicializa o vetor
-std::vector<Reagente*> Reagente::_listaGlobalReagentes;
-
 //Construtor
 Reagente::Reagente(int id, std::string nome, std::string dataValidade, int quantidade, 
                    int quantidadeCritica, std::string localArmazenamento, int nivelAcesso, 
@@ -52,14 +48,3 @@ void Reagente::setNivelAcesso(int nivelAcesso) { this->nivelAcesso = nivelAcesso
 void Reagente::setUnidadeMedida(std::string unidadeMedida) { this->unidadeMedida = unidadeMedida; }
 void Reagente::setMarca(std::string marca) { this->marca = marca; }
 void Reagente::setCodigoReferencia(std::string codigoReferencia) { this->codigoReferencia = codigoReferencia; }
-
-//pertence a classe Reagente
-//guarda o reagente na nossa lista global
-void Reagente::adicionarReagente(Reagente* reagente)
-{
-    // verificacao de segunça para caso de ponteiro vazio
-    if (reagente == nullptr) {
-        throw std::invalid_argument("Erro: Tentativa de adicionar um reagente nulo.");
-    }
-    _listaGlobalReagentes.push_back(reagente);
-}

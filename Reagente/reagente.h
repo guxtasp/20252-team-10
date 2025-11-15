@@ -16,8 +16,6 @@ private:
     std::string marca;
     std::string codigoReferencia;
     int id;
-    //Armazena um ponteiro para cada reagente criado, independente do laboratorio 
-    static std::vector<Reagente*> _listaGlobalReagentes;
 
 public:
     //Construtor
@@ -51,8 +49,6 @@ public:
     void setMarca(std::string marca);
     void setCodigoReferencia(std::string codigoReferencia);
 
-    // Adicionar o reagente na lista global
-    static void adicionarReagente(Reagente* reagente);
 };
 
 #endif
