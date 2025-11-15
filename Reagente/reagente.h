@@ -2,6 +2,7 @@
 #define Reagente_H
 
 #include <string>
+#include <vector>
 
 class Reagente {
 private:
@@ -15,6 +16,8 @@ private:
     std::string marca;
     std::string codigoReferencia;
     int id;
+    //Armazena um ponteiro para cada reagente criado, independente do laboratorio 
+    static std::vector<Reagente*> _listaGlobalReagentes;
 
 public:
     //Construtor
@@ -22,7 +25,7 @@ public:
              int quantidadeCritica, std::string localArmazenamento, int nivelAcesso, 
              std::string unidadeMedida, std::string marca, std::string codigoReferencia);
     
-    //Destrutor
+    //Destrutor virtual, garante que o destrutor da classe filha seja chamado primeiro
     virtual ~Reagente(); 
 
     // Gets
@@ -47,6 +50,9 @@ public:
     void setUnidadeMedida(std::string unidadeMedida);
     void setMarca(std::string marca);
     void setCodigoReferencia(std::string codigoReferencia);
+
+    // Adicionar o reagente na lista global
+    static void adicionarReagente(Reagente* reagente);
 };
 
 #endif
