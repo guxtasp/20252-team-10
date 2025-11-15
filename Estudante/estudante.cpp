@@ -29,3 +29,9 @@ void Estudante::setCurso(std::string curso){
 void Estudante::setNivel(std::string nivel){ 
     nivel = nivel; 
 }
+
+//Outros métodos
+//Associar estudante a laboratorio
+void Estudante::associarLaboratorio(){
+  return;
+}
