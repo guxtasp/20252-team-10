@@ -27,5 +27,9 @@ public:
     void setMatricula(std::string matricula);
     void setCurso(std::string curso);
     void setNivel(std::string nivel);
+
+    // esta funçao checa se o nivel de acesso do estudante e suficiente.
+    void acessarReagenteRestrito(int idReagente) override;
 };
+
 #endif

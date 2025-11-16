@@ -151,23 +151,146 @@ void Gestor::listarUsuarios() {
     std::cout << "========================================\n" << std::endl;
 }
 
-// Metodo para vincular o gestor a um laboratorio
-void Gestor::setLaboratorio(Laboratorio* lab) {
-    this->_meuLaboratorio = lab;
+// Metodo para cadastrar reagente
+void Gestor::cadastrarReagente() {
+    // Variaveis para guardar os dados da tabela base Reagente
+    std::string nome, dataValidade, local, unidade, marca, codRef;
+    int quantidade, quantidadeCritica, nivelAcesso;
+    
+    std::cout << "Cadastro de Novo Reagente \n";
+    std::cout << "Nome: ";
+    std::cin.ignore(); // Ignora o 'Enter' anterior
+    std::getline(std::cin, nome);
+    std::cout << "Data de Validade (AAAA-MM-DD): ";
+    std::cin >> dataValidade;
+    std::cout << "Quantidade: ";
+    std::cin >> quantidade;
+    std::cout << "Quantidade Critica: ";
+    std::cin >> quantidadeCritica;
+    std::cout << "Local de Armazenamento: ";
+    std::cin.ignore();
+    std::getline(std::cin, local);
+    std::cout << "Nivel de Acesso (1, 2 ou 3): ";
+    std::cin >> nivelAcesso;
+    std::cout << "Unidade de Medida (ex: 'ml', 'g'): ";
+    std::cin >> unidade;
+    std::cout << "Marca: ";
+    std::cin.ignore();
+    std::getline(std::cin, marca);
+    std::cout << "Codigo de Referencia: ";
+    std::cin >> codRef;
+
+    std::cout << "Tipo de Reagente:\n";
+    std::cout << "Digite 1 se for Liquido \n Digite 2 se for Solido \n";
+    int tipo;
+    std::cin >> tipo;
+
+    // Declara as variaveis de tipo
+    //densidade e volume so serao usadas se tipo == 1
+    // massa e estadoFisico so serao usadas se tipo == 2
+    double densidade = 0.0;
+    double volume = 0.0;
+    double massa = 0.0;
+    std::string estadoFisico; 
+
+    if (tipo == 1) { // Liquido
+        std::cout << "Densidade: ";
+        std::cin >> densidade;
+        std::cout << "Volume: ";
+        std::cin >> volume;
+        
+    } else if (tipo == 2) { // Solido
+        std::cout << "Massa: ";
+        std::cin >> massa;
+        
+        // Pergunta o estado fisico que é um atributo da classe ReagenteSolido
+        std::cout << "Estado Fisico (ex: 'po', 'cristal'): ";
+        std::cin.ignore(); // Ignora o 'Enter' da leitura da massa
+        std::getline(std::cin, estadoFisico);
+    }
+    // 3. Salva no Banco de Dados
+    try {
+        // Insere na tabela base "Reagente"
+        // O 'db' e herdado de Usuario e esta disponivel aqui
+        Table reagenteTable = db->getTable("Reagente");
+        
+        // Monta a query de insercao com os dados basicos
+        Result res = reagenteTable.insert(
+            "nome", "dataValidade", "quantidade", "quantidadeCritica", 
+            "localArmazenamento", "nivelAcesso", "unidadeMedida", "marca", "codigoReferencia"
+        ).values(nome, dataValidade, quantidade, quantidadeCritica, 
+                 local, nivelAcesso, unidade, marca, codRef)
+         .execute(); // Executa a insercao no DB
+        
+        // Recupera o ID do reagente que acabou de ser criado
+        // (Precisamos desse ID para ligar com a tabela Liquido/Solido)
+        int reagenteId = res.getAutoIncrementValue();
+
+        // Insere nas tabelas especializadas (Liquido ou Solido)
+        if (tipo == 1) { 
+            // Se for liquido, insere na tabela 'ReagenteLiquido'
+            db->getTable("ReagenteLiquido")
+                .insert("id", "densidade", "volume")
+                .values(reagenteId, densidade, volume)
+                .execute();
+            
+            // Imprime a confirmacao para o usuario
+            std::cout << "Reagente Liquido '" << nome << "' cadastrado com sucesso!\n";
+        
+        } else if (tipo == 2) { 
+            // Se for solido, insere na tabela 'ReagenteSolido'
+            db->getTable("ReagenteSolido")
+                .insert("id", "massa", "estadoFisico")
+                .values(reagenteId, massa, estadoFisico)
+                .execute();
+            
+            // Imprime a confirmacao para o usuario
+            std::cout << "Reagente Solido '" << nome << "' cadastrado com sucesso!\n";
+        }
+        
+    } catch (const mysqlx::Error &err) {
+        // Se qualquer operacao do 'try' falhar, captura o erro
+        // (Ex: se o banco estiver offline ou a tabela nao existir)
+        std::cerr << "Erro ao cadastrar reagente: " << err.what() << std::endl;
+    }
 }
 
-//implementaçao do metodo para cadastrar reagente
-void Gestor::cadastrarReagente(Reagente* novoReagente) {
+// Implementação da função virtual. O Gestor ignora a checagem de nível.
+void Gestor::acessarReagenteRestrito(int idReagente) {
     
-    // O Gestor so pode cadastrar reagente se ele estiver gerenciando um laboratorio
-    if (this->_meuLaboratorio == nullptr) {
-        std::cerr << "ERRO (Gestor): Nao e possivel cadastrar. Gestor nao esta vinculado a um laboratorio." << std::endl;
-        return; 
+    std::cout << "\n(Gestor) Acessando Reagente ID: " << idReagente << "\n";
+    if (db == nullptr) {
+        std::cerr << "ERRO: Gestor não está conectado ao banco." << std::endl;
+        return;
     }
-//
-    // O Gestor chama o metodo adicionarReagente do Laboratorio que ele gerencia
-    std::string resultadoLab = this->_meuLaboratorio->adicionarReagente(novoReagente);
 
-    // Imprime a confirmacao ou a mensagem de erro que o metodo do Laboratorio retornou.
-    std::cout << resultadoLab << std::endl;
+    try {
+        Table reagenteTable = db->getTable("Reagente");
+        
+        // Busca o reagente pelo ID
+        RowResult res = reagenteTable.select(
+            "id", "nome", "quantidade", "unidadeMedida", 
+            "localArmazenamento", "dataValidade", "nivelAcesso"
+        ).where("id = :id").bind("id", idReagente).execute();
+
+        if (res.count() == 0) {
+            std::cout << "Reagente com ID " << idReagente << " não encontrado." << std::endl;
+            return;
+        }
+
+        // Pega os detalhes
+        Row row = res.fetchOne();
+
+        // O Gestor imprime tudo (não há checagem de nível)
+        std::cout << "Acesso Permitido (Nível Gestor):\n";
+        std::cout << "Nome:    " << row[1].get<std::string>() << "\n";
+        std::cout << "Qtde:    " << row[2].get<int>() << " " << row[3].get<std::string>() << "\n";
+        std::cout << "Local:   " << row[4].get<std::string>() << "\n";
+        std::cout << "Validade: " << row[5].get<std::string>() << "\n";
+        std::cout << "(Nível do reagente: " << row[6].get<int>() << ")\n";
+        std::cout << "-------------------------------------\n";
+
+    } catch (const mysqlx::Error &err) {
+        std::cerr << "Erro ao acessar reagente: " << err.what() << std::endl;
+    }
 }

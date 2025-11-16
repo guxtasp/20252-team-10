@@ -30,7 +30,10 @@ class Gestor : public Usuario{
         void setLaboratorio(Laboratorio* lab);
 
         //cadastra um novo reagente no laboratorio gerenciado por este gestor
-        void cadastrarReagente(Reagente* novoReagente);
+        void cadastrarReagente();
+
+        //O Gestor tem acesso total
+        void acessarReagenteRestrito(int idReagente) override;
 };
 
 #endif
