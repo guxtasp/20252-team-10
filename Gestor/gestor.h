@@ -18,6 +18,22 @@ class Gestor : public Usuario{
         //Construtor
         Gestor(std::string nome, std::string email, std::string senha, int nivelAcesso, Schema* db);
 
+        static Usuario** usuariosCarregados;
+        static int quantidadeUsuarios;
+        static int capacidadeUsuarios;
+
+        static Gestor** gestores;
+        static int quantidadeGestores;
+        static int capacidadeGestores;
+
+        static Estudante** estudantes;
+        static int quantidadeEstudantes;
+        static int capacidadeEstudantes;
+
+        static PosGraduando** posGraduandos;
+        static int quantidadePosGraduandos;
+        static int capacidadePosGraduandos;
+
         // Destrutor
         ~Gestor();
 
@@ -25,6 +41,7 @@ class Gestor : public Usuario{
         void cadastrarUsuario();
         void deletarUsuario();
         void listarUsuarios();
+        static void carregarUsuarios();
 
         //sets
         void setLaboratorio(Laboratorio* lab);

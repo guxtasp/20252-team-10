@@ -1,7 +1,26 @@
 #include "../Usuario/usuario.h"
 #include "../Gestor/gestor.h"
 #include <string>
+#include <iomanip>
 #include <iostream>
+
+
+Usuario** Gestor::usuariosCarregados = new Usuario*[10];
+int Gestor::quantidadeUsuarios = 0;
+int Gestor::capacidadeUsuarios = 10;
+
+Gestor** Gestor::gestores = new Gestor*[10];
+int Gestor::quantidadeGestores = 0;
+int Gestor::capacidadeGestores = 10;
+
+Estudante** Gestor::estudantes = new Estudante*[10];
+int Estudante::quantidadeEstudantes = 0;
+int Estudante::capacidadeEstudantes = 10;
+
+PosGraduando** Gestor::posGraduandos = new PosGraduando*[10];
+int PosGraduando::quantidadePos = 0;
+int PosGraduando::capacidadePos = 10;
+
 
 // Construtor
 Gestor::Gestor(std::string nome, std::string email, std::string senha, int nivelAcesso, Schema* db) : 
@@ -12,7 +31,25 @@ Gestor::Gestor(std::string nome, std::string email, std::string senha, int nivel
     };
 
 // Destrutor
-Gestor::~Gestor() {}
+Gestor::~Gestor() {
+    for (int i = 0; i < quantidadeUsuarios; i++) {
+        delete usuariosCarregados[i];
+    }
+    delete[] usuariosCarregados;
+    delete[] gestores;
+    delete[] estudantes;
+    delete[] posGraduandos;
+
+    quantidadeUsuarios = 0;
+    quantidadeGestores = 0;
+    quantidadeEstudantes = 0;
+    quantidadePosGraduandos = 0;
+    usuariosCarregados = nullptr;
+    gestores = nullptr;
+    estudantes = nullptr;
+    posGraduandos = nullptr;
+
+}
 
 // Demais funções
 void Gestor::cadastrarUsuario() {
@@ -86,6 +123,108 @@ void Gestor::cadastrarUsuario() {
     }
 }
 
+//função que carrega os usuários do banco de dados para o array dinâmico
+void Gestor::carregarUsuarios() {
+    try{
+        Table usuarioTables = db->getTable("Usuario"); //pega a tabela usuario do banco
+        RowResult resultado = usuarioTable.select("id", "nome", "email", "senha", "nivelAcesso").execute();//seleciona os campos necessários
+
+        for (Rowrow : resultado) {
+            int nivel = row[4].get<int>();//pega o nivel de acesso do usuario
+            Usuario* u = nullptr;//ponteiro para objeto do tipo Usuario
+
+            //cria o objeto do tipo correto baseado no nivel de acesso
+            if (nivel == 1) u = new Gestor(row[1].get<std::string>(), row[2].get<std::string>(), row[3].get<std::string>(), nivel, db);
+            else if (nivel == 2) u = new Estudante(row[1].get<std::string>(), row[2].get<std::string>(), row[3].get<std::string>(), nivel, db);
+            else if (nivel == 3) u = new PosGraduando(row[1].get<std::string>(), row[2].get<std::string>(), row[3].get<std::string>(), nivel, db);
+
+            u->setId(row[0].get<int>());//define o id do usuario
+
+            // Adiciona no vetor geral
+            if (quantidadeUsuarios == capacidadeUsuarios) {
+                int novaCapacidade = capacidadeUsuarios * 2;
+                Usuario** novo = new Usuario*[novaCapacidade];
+                for (int i = 0; i < quantidadeUsuarios; i++) novo[i] = usuariosCarregados[i];
+                delete[] usuariosCarregados;
+                usuariosCarregados = novo;
+                capacidadeUsuarios = novaCapacidade;
+            }
+            usuariosCarregados[quantidadeUsuarios++] = u;//adiciona o usuario no array geral
+
+            // Adiciona no vetor específico
+            if (nivel == 1) {
+                if (quantidadeGestores == capacidadeGestores) {
+                    int novaCapacidade = capacidadeGestores * 2;
+                    Gestor** novo = new Gestor*[novaCapacidade];
+                    for (int i = 0; i < quantidadeGestores; i++) novo[i] = gestores[i];
+                    delete[] gestores;
+                    gestores = novo;
+                    capacidadeGestores = novaCapacidade;
+                }
+                gestores[quantidadeGestores++] = (Gestor*)u;//adiciona o gestor no array de gestores
+            } else if (nivel == 2) {
+                if (quantidadeEstudantes == capacidadeEstudantes) {
+                    int novaCapacidade = capacidadeEstudantes * 2;
+                    Estudante** novo = new Estudante*[novaCapacidade];
+                    for (int i = 0; i < quantidadeEstudantes; i++) novo[i] = estudantes[i];
+                    delete[] estudantes;
+                    estudantes = novo;
+                    capacidadeEstudantes = novacapacidade;
+                }
+                estudantes[quantidadeEstudantes++] = (Estudante*)u;//adiciona o estudante no array de estudantes
+            } else if (nivel == 3) {
+                if (quantidadePos == capacidadePos) {
+                    int novaCapacidade = capacidadePos * 2;
+                    PosGraduando** novo = new PosGraduando*[novaCapacidade];
+                    for (int i = 0; i < quantidadePos; i++) novo[i] = posGraduandos[i];
+                    delete[] posGraduandos;
+                    posGraduandos = novo;
+                    capacidadePos = novaCapacidade;
+                }
+                posGraduandos[quantidadePos++] = (PosGraduando*)u;//adiciona o pos graduando no array de pos graduandos
+            }
+        
+        }
+    } catch (const mysqlx::Error &err) {
+        std::cerr << "Erro ao carregar usuários: " << err.what() << std::endl;
+    }
+}
+//lista os usuários do laboratório gerenciado por este gestor
+void Gestor::listarUsuarios() {
+    //verifica se o gestor está vinculado a um laboratorio
+    if(_meuLaboratorio == nullptr) {
+        std::cout << "Este Gestor não está vinculado a um laboratorio." << std::endl;
+        return; 
+    }
+    
+    //cabeçalho da tabela
+    std::cout << "\n=== LISTANDO USUÁRIOS (via Gestor) ===" << std::endl;
+    std::cout << std::left
+              << std::setw(5)  << "ID"
+              << std::setw(20) << "Nome"
+              << std::setw(25) << "Email"
+              << std::setw(15) << "Tipo"
+              << "\n";
+    std::cout << std::string(65, '-') << "\n";
+    //laco que percorre o vetor de usuarios do laboratorio
+    for (Usuario* u : _meuLaboratorio->usuarios) {
+        std::string tipo;
+        if (u->getNivelAcesso() == 1) tipo = "Gestor";
+        else if (u->getNivelAcesso() == 2) tipo = "Graduacao";
+        else if (u->getNivelAcesso() == 3) tipo = "Pos-Graduacao";
+        else tipo = "Desconhecido";
+
+        std::cout << std::left
+                  << std::setw(5)  << u->getId()
+                  << std::setw(20) << u->getNome()
+                  << std::setw(25) << u->getEmail()
+                  << std::setw(15) << tipo
+                  << "\n";
+    }
+    std::cout << std::string(65, '-') << "\n";
+}
+
+
 void Gestor::deletarUsuario() {
     std::cout << "Digite o email do usuário a ser deletado: ";
     std::string email;
@@ -142,14 +281,6 @@ void Gestor::deletarUsuario() {
     }
 }
 
-
-void Gestor::listarUsuarios() {
-    std::cout << "\n=== LISTANDO USUÁRIOS (via Gestor) ===" << std::endl;
-    std::cout << "Nome do Gestor: " << getNome() << std::endl;
-    std::cout << "Email do Gestor: " << getEmail() << std::endl;
-    std::cout << "Nível de Acesso: " << getNivelAcesso() << std::endl;
-    std::cout << "========================================\n" << std::endl;
-}
 
 // Metodo para cadastrar reagente
 void Gestor::cadastrarReagente() {
@@ -253,6 +384,10 @@ void Gestor::cadastrarReagente() {
         // (Ex: se o banco estiver offline ou a tabela nao existir)
         std::cerr << "Erro ao cadastrar reagente: " << err.what() << std::endl;
     }
+// Metodo para vincular o gestor a um laboratorio
+void Gestor::setLaboratorio(Laboratorio* lab) {
+    this->_meuLaboratorio = lab;
+}
 }
 
 // Implementação da função virtual. O Gestor ignora a checagem de nível.
