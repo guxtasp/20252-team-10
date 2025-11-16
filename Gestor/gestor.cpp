@@ -208,53 +208,20 @@ void Gestor::cadastrarReagente() {
         std::cin.ignore(); // Ignora o 'Enter' da leitura da massa
         std::getline(std::cin, estadoFisico);
     }
-    // 3. Salva no Banco de Dados
-    try {
-        // Insere na tabela base "Reagente"
-        // O 'db' e herdado de Usuario e esta disponivel aqui
-        Table reagenteTable = db->getTable("Reagente");
-        
-        // Monta a query de insercao com os dados basicos
-        Result res = reagenteTable.insert(
-            "nome", "dataValidade", "quantidade", "quantidadeCritica", 
-            "localArmazenamento", "nivelAcesso", "unidadeMedida", "marca", "codigoReferencia"
-        ).values(nome, dataValidade, quantidade, quantidadeCritica, 
-                 local, nivelAcesso, unidade, marca, codRef)
-         .execute(); // Executa a insercao no DB
-        
-        // Recupera o ID do reagente que acabou de ser criado
-        // (Precisamos desse ID para ligar com a tabela Liquido/Solido)
-        int reagenteId = res.getAutoIncrementValue();
 
-        // Insere nas tabelas especializadas (Liquido ou Solido)
-        if (tipo == 1) { 
-            // Se for liquido, insere na tabela 'ReagenteLiquido'
-            db->getTable("ReagenteLiquido")
-                .insert("id", "densidade", "volume")
-                .values(reagenteId, densidade, volume)
-                .execute();
-            
-            // Imprime a confirmacao para o usuario
-            std::cout << "Reagente Liquido '" << nome << "' cadastrado com sucesso!\n";
-        
-        } else if (tipo == 2) { 
-            // Se for solido, insere na tabela 'ReagenteSolido'
-            db->getTable("ReagenteSolido")
-                .insert("id", "massa", "estadoFisico")
-                .values(reagenteId, massa, estadoFisico)
-                .execute();
-            
-            // Imprime a confirmacao para o usuario
-            std::cout << "Reagente Solido '" << nome << "' cadastrado com sucesso!\n";
-        }
-        
-    } catch (const mysqlx::Error &err) {
-        // Se qualquer operacao do 'try' falhar, captura o erro
-        // (Ex: se o banco estiver offline ou a tabela nao existir)
-        std::cerr << "Erro ao cadastrar reagente: " << err.what() << std::endl;
+    if (_meuLaboratorio) { //
+        // Delega a tarefa de cadastrar regaente para o laboratorio
+        _meuLaboratorio->cadastrarNovoReagente(
+            nome, dataValidade, quantidade, quantidadeCritica, local, 
+            nivelAcesso, unidade, marca, codRef, tipo, 
+            densidade, volume, massa, estadoFisico
+        );
+    } else {
+        // Mensagem de erro se o gestor nao gerencia um laboratorio
+        std::cerr << "ERRO: Gestor nao esta alocado a um laboratorio." << std::endl;
     }
 }
-
+    
 // Implementação da função virtual. O Gestor ignora a checagem de nível.
 void Gestor::acessarReagenteRestrito(int idReagente) {
     
