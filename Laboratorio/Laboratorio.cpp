@@ -354,7 +354,7 @@ void Laboratorio::carregarReagentesDoDB() {
                                 std::vector<Reagente *> criticos;
                                 for (auto reagente : reagentes)
                                 {
-                                    if (reagente->getQuantidade() <= reagente->getQuantidadeCritica())
+                                    if (reagente->verificarNivelCritico())
                                     {
                                         criticos.push_back(reagente);
                                     }
