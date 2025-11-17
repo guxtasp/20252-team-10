@@ -3,14 +3,15 @@
 
 #include "../Usuario/usuario.h"
 #include <string>
-#include <mysql-cppconn-8/mysqlx/xdevapi.h>
-#include "../Reagente/Reagente.h"
+#include <mysql-cppconn/mysqlx/xdevapi.h>
+#include "../Reagente/reagente.h"
 #include "../Laboratorio/Laboratorio.h"
+#include "../PosGraduacao/posgraduacao.h"
 
 
 using namespace mysqlx;
 
-class Gestor : public Usuario{
+class Gestor : public Usuario {
     private:
     // O laboratorio que este Gestor gerencia
     Laboratorio* _meuLaboratorio;
@@ -30,9 +31,9 @@ class Gestor : public Usuario{
         static int quantidadeEstudantes;
         static int capacidadeEstudantes;
 
-        static PosGraduando** posGraduandos;
-        static int quantidadePosGraduandos;
-        static int capacidadePosGraduandos;
+        static PosGraduacao** posGraduandos;
+        static int quantidadePos;
+        static int capacidadePos;
 
         // Destrutor
         ~Gestor();
@@ -41,7 +42,7 @@ class Gestor : public Usuario{
         void cadastrarUsuario();
         void deletarUsuario();
         void listarUsuarios();
-        static void carregarUsuarios();
+        void carregarUsuarios();
 
         //sets
         void setLaboratorio(Laboratorio* lab);

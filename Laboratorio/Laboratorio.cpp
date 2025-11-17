@@ -4,7 +4,7 @@
 #include <iostream>
 
 Laboratorio::Laboratorio(int id, const std::string &nome, const std::string &departamento, Schema* db)
-    : id(id), nome(nome), departamento(departamento), db(db) 
+    : id(id), nome(nome), departamento(departamento), db(db)
 {
     // Se a conexao com o DB existir, carrega os reagentes
     if (this->db) {
@@ -33,22 +33,24 @@ void Laboratorio::carregarReagentesDoDB() {
         Table reagenteTable = db->getTable("Reagente");
 
         //LEFT JOIN é usado para pegar dados de Liquido ou Solido
-        RowResult res = reagenteTable.select(
-            "Reagente.id", "Reagente.nome", "Reagente.quantidade", 
-            "Reagente.quantidadeCritica", "Reagente.codigoReferencia", "Reagente.marca", 
-            "Reagente.localArmazenamento", "Reagente.nivelAcesso", "Reagente.unidadeMedida", 
-            "Reagente.dataValidade", // Colunas do Reagente
-            "RL.densidade", "RL.volume", // Colunas do Liquido
-            "RS.massa", "RS.estadoFisico" // Colunas do Solido
-        )
-        .leftJoin("ReagenteLiquido as RL", "Reagente.id = RL.id")
-        .leftJoin("ReagenteSolido as RS", "Reagente.id = RS.id")
-        .execute();
+        SqlResult res = db->getSession().sql("SELECT * FROM LabUFV.Reagente AS R LEFT JOIN LabUFV.ReagenteLiquido AS RL ON R.id = RL.id LEFT JOIN LabUFV.ReagenteSolido AS RS ON R.id = RS.id").execute();
+
+
+
+        //     "Reagente.id", "Reagente.nome", "Reagente.quantidade",
+        //     "Reagente.quantidadeCritica", "Reagente.referencia", "Reagente.marca",
+        //     "Reagente.localArmazenamento", "Reagente.nivelAcesso", "Reagente.unidadeMedida",
+        //     "Reagente.validade", // Colunas do Reagente
+        //     "ReagenteLiquido.densidade", "ReagenteLiquido.volume", // Colunas do Liquido
+        //     "ReagenteSolido.massa", "ReagenteSolido.estadoFisico" // Colunas do Solido
+        // )
+        // .groupBy("Reagente.id = ReagenteLiquido.id", "Reagente.id = ReagenteSolido.id")
+        // .execute();
 
         //Criar objetos
         for (Row row : res.fetchAll()) {
             Reagente* novoReagente = nullptr;
-            
+
             // Pega dados da tabela base
             int id = row[0].get<int>();
             std::string nome = row[1].get<std::string>();
@@ -65,16 +67,16 @@ void Laboratorio::carregarReagentesDoDB() {
             if (!row[10].isNull()) {
                 double densidade = row[10].get<double>();
                 double volume = row[11].get<double>();
-                novoReagente = new ReagenteLiquido(id, nome, validade, qtd, qtdCritica, local, 
-                                                   nivelAcesso, unidade, marca, codRef, 
+                novoReagente = new ReagenteLiquido(id, nome, validade, qtd, qtdCritica, local,
+                                                   nivelAcesso, unidade, marca, codRef,
                                                    densidade, volume); //
-            } 
+            }
             // Verifica se e Solido
             else if (!row[12].isNull()) {
                 double massa = row[12].get<double>();
                 std::string estado = row[13].get<std::string>();
-                novoReagente = new ReagenteSolido(id, nome, validade, qtd, qtdCritica, local, 
-                                                  nivelAcesso, unidade, marca, codRef, 
+                novoReagente = new ReagenteSolido(id, nome, validade, qtd, qtdCritica, local,
+                                                  nivelAcesso, unidade, marca, codRef,
                                                   massa, estado); //
             }
 
@@ -90,51 +92,51 @@ void Laboratorio::carregarReagentesDoDB() {
 }
 
 void Laboratorio::cadastrarNovoReagente(
-    std::string nome, std::string dataValidade, int quantidade, 
-    int quantidadeCritica, std::string local, int nivelAcesso, 
+    std::string nome, std::string dataValidade, int quantidade,
+    int quantidadeCritica, std::string local, int nivelAcesso,
     std::string unidade, std::string marca, std::string codRef,
-    int tipo, double densidade, double volume, 
+    int tipo, double densidade, double volume,
     double massa, std::string estadoFisico)
 {
     //insercao no DB
     try {
         Table reagenteTable = db->getTable("Reagente");
-        
+
         Result res = reagenteTable.insert(
-            "nome", "dataValidade", "quantidade", "quantidadeCritica", 
+            "nome", "dataValidade", "quantidade", "quantidadeCritica",
             "localArmazenamento", "nivelAcesso", "unidadeMedida", "marca", "codigoReferencia"
-        ).values(nome, dataValidade, quantidade, quantidadeCritica, 
+        ).values(nome, dataValidade, quantidade, quantidadeCritica,
                  local, nivelAcesso, unidade, marca, codRef)
          .execute(); //
-        
+
         int reagenteId = res.getAutoIncrementValue(); // Pega o ID criado
 
         Reagente* novoReagente = nullptr; // Ponteiro para objeto em memoria
 
-        if (tipo == 1) { 
+        if (tipo == 1) {
             db->getTable("ReagenteLiquido")
                 .insert("id", "densidade", "volume")
                 .values(reagenteId, densidade, volume)
                 .execute(); //
-            
+
             // Cria o objeto para guardar no vector
-            novoReagente = new ReagenteLiquido(reagenteId, nome, dataValidade, quantidade, 
-                                               quantidadeCritica, local, nivelAcesso, 
+            novoReagente = new ReagenteLiquido(reagenteId, nome, dataValidade, quantidade,
+                                               quantidadeCritica, local, nivelAcesso,
                                                unidade, marca, codRef, densidade, volume); //
-            
+
             std::cout << "Reagente Liquido '" << nome << "' cadastrado com sucesso!\n"; //
-        
-        } else if (tipo == 2) { 
+
+        } else if (tipo == 2) {
             db->getTable("ReagenteSolido")
                 .insert("id", "massa", "estadoFisico")
                 .values(reagenteId, massa, estadoFisico)
                 .execute(); //
 
             // Cria o objeto para guardar no vector
-            novoReagente = new ReagenteSolido(reagenteId, nome, dataValidade, quantidade, 
-                                              quantidadeCritica, local, nivelAcesso, 
+            novoReagente = new ReagenteSolido(reagenteId, nome, dataValidade, quantidade,
+                                              quantidadeCritica, local, nivelAcesso,
                                               unidade, marca, codRef, massa, estadoFisico); //
-            
+
             std::cout << "Reagente Solido '" << nome << "' cadastrado com sucesso!\n"; //
         }
 
@@ -143,7 +145,7 @@ void Laboratorio::cadastrarNovoReagente(
             this->reagentes.push_back(novoReagente);
             std::cout << "Reagente adicionado tambem ao vetor em memoria." << std::endl;
         }
-        
+
     } catch (const mysqlx::Error &err) {
         std::cerr << "Erro ao cadastrar reagente: " << err.what() << std::endl; //
     }
@@ -215,20 +217,25 @@ std::string Laboratorio::registrarRetirada(Usuario *usuario, const std::string &
     std::string resultado = novaRetirada->confirmarRetirada();
 
     // Se a retirada na memoria deu certo, atualiza o DB
-    if (resultado.find("Erro:") == std::string::npos) 
+    if (resultado.find("Erro:") == std::string::npos)
     {
         try {
             // Pega a nova quantidade do objeto em memoria
             int novaQuantidade = reagente->getQuantidade();
             int reagenteId = reagente->getId();
 
-            // Envia o comando para o banco de dados
-            db->getTable("Reagente")
-                .modify("id = :id") // Encontra a linha pelo ID
-                .set("quantidade", novaQuantidade) // Define a nova quantidade
-                .bind("id", reagenteId) // Associa o ID
-                .execute();
-            
+            // // Envia o comando para o banco de dados
+            // db->getTable("Reagente")
+            //     .modify("id = :id") // Encontra a linha pelo ID
+            //     .set("quantidade", novaQuantidade) // Define a nova quantidade
+            //     .bind("id", reagenteId) // Associa o ID
+            //     .execute();
+
+            db->getTable("Reagente").update()
+                                    .set("quantidade", novaQuantidade)
+                                    .where("id = :id")
+                                    .bind("id", reagenteId).execute();
+
             std::cout << "Banco de dados atualizado para a retirada." << std::endl;
 
         } catch (const mysqlx::Error &err) {
@@ -238,7 +245,7 @@ std::string Laboratorio::registrarRetirada(Usuario *usuario, const std::string &
             delete novaRetirada;
             return "Erro no banco ao registrar retirada. Estoque em memoria revertido.";
         }
-        
+
         // So adiciona a retirada na lista se tudo deu certo
         retiradas.push_back(novaRetirada); //
     }
@@ -293,7 +300,7 @@ std::string Laboratorio::adicionarUsuario(Usuario *usuario)
     usuarios.push_back(usuario);
 
     // Se for gestor, adiciona a lista de gestores
-    if (usuario->getNivelAcesso() == "gestor")
+    if (usuario->getNivelAcesso() == 1)
     {
         gestores.push_back(usuario);
     }
@@ -369,31 +376,36 @@ std::vector<Reagente *> Laboratorio::getReagentesVencidos()
     }
     return vencidos;
 }
+
+
 // Retorna reagentes proximos do vencimento
-std::vector<Reagente *> Laboratorio::getReagentesProximoVencimento(int dias)
-{
-    std::vector<Reagente *> proximos;
-    for (auto reagente : reagentes)
-    {
-        if (reagente->proximoVencimento(dias))
-        {
-            proximos.push_back(reagente);
-        }
-    }
-    return proximos;
-}
+
+// std::vector<Reagente *> Laboratorio::getReagentesProximoVencimento(int dias)
+// {
+//     std::vector<Reagente *> proximos;
+//     for (auto reagente : reagentes)
+//     {
+//         if (reagente->proximoVencimento(dias))
+//         {
+//             proximos.push_back(reagente);
+//         }
+//     }
+//     return proximos;
+// }
 // Gera relatorio de alertas para gestores
+
+
 std::string Laboratorio::getAlertasGestor()
 {
     auto criticos = getReagentesCriticos();
     auto vencidos = getReagentesVencidos();
-    auto proximos = getReagentesProximoVencimento();
+    // auto proximos = getReagentesProximoVencimento();
 
     std::stringstream alertas;
     alertas << "=== ALERTAS PARA GESTORES ===\n";
     alertas << "Reagentes em quantidade critica: " << criticos.size() << "\n";
     alertas << "Reagentes vencidos: " << vencidos.size() << "\n";
-    alertas << "Reagentes proximos do vencimento: " << proximos.size() << "\n";
+    // alertas << "Reagentes proximos do vencimento: " << proximos.size() << "\n";
 
     return alertas.str();
 }

@@ -4,9 +4,10 @@
 
 // Construtor
 
-Alerta::Alerta(unsigned int tipo)
+Alerta::Alerta(unsigned int tipo, Reagente *reagenteEmAlerta)
 {
     this->_tipo = tipo;
+    this->_reagenteEmAlerta = reagenteEmAlerta;
     try
     {
         this->situacaoPorTipo(); // preenche a situacao baseado no tipo de alerta
@@ -17,6 +18,7 @@ Alerta::Alerta(unsigned int tipo)
     }
 
     this->setDataEmissao();
+
 }
 
 // Destrutor
@@ -77,10 +79,10 @@ void Alerta::situacaoPorTipo()
     switch (_tipo)
     {
     case 1: // tipo 1 = reagente em quantidade critica
-        situacao = "[ALERTA]: O reagente [PLACEHOLDER] atingiu quantidade crítica!\n";
+        situacao = "[ALERTA]: O reagente " + _reagenteEmAlerta->getNome() + " atingiu quantidade crítica!\n";
         break;
     case 2:
-        situacao = "[ALERTA]: o reagente [PLACEHOLDER] está próximo do vencimento!\n";
+        situacao = "[ALERTA]: o reagente " + _reagenteEmAlerta->getNome() + " está próximo do vencimento!\n";
         break;
     default:
         throw std::runtime_error("Alerta criado com tipo inválido\n");

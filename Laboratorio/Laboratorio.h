@@ -6,8 +6,11 @@
 #include "../Usuario/usuario.h"
 #include "../Reagente/reagente.h"
 #include "../Retirada/Retirada.h"
-#include "../Reagente/reagenteliquido.h"
-#include "../Reagente/reagentesolido.h"
+#include "../Reagente/reagenteLiquido.h"
+#include "../Reagente/reagenteSolido.h"
+
+class Usuario; class Retirada;
+
 
 using namespace mysqlx;
 
@@ -35,17 +38,17 @@ public:
 
     //Metodo para criar e salvar o reagente
     void cadastrarNovoReagente(
-        std::string nome, std::string dataValidade, int quantidade, 
-        int quantidadeCritica, std::string local, int nivelAcesso, 
+        std::string nome, std::string dataValidade, int quantidade,
+        int quantidadeCritica, std::string local, int nivelAcesso,
         std::string unidade, std::string marca, std::string codRef,
-        int tipo, double densidade, double volume, 
+        int tipo, double densidade, double volume,
         double massa, std::string estadoFisico
     );
 
     // Metodo para Buscar Reagentes
-    Reagente *buscarReagente(const std::string &nome); 
+    Reagente *buscarReagente(const std::string &nome);
     std::vector<Reagente *> listarReagentes(const std::string &filtroNome = "");
-    std::vector<Reagente *> listarReagentesPorLocal(const std::string &local); 
+    std::vector<Reagente *> listarReagentesPorLocal(const std::string &local);
 
     // Gerenciamento de Retiradas
     std::string registrarRetirada(Usuario *usuario, const std::string &nomeReagente, float quantidade);
@@ -59,13 +62,14 @@ public:
     // Alertas e Monitoramento
     std::vector<Reagente *> getReagentesCriticos();
     std::vector<Reagente *> getReagentesVencidos();
-    std::vector<Reagente *> getReagentesProximoVencimento(int dias = 15);
+    // std::vector<Reagente *> getReagentesProximoVencimento(int dias = 15);
     std::string getAlertasGestor();
 
     // Informacoes do Laboratorio
     std::string getEstatisticas();
 
     // Getters
+    std::vector<Usuario *> getVetorUsuarios() { return usuarios; }
     int getId() const { return id; }
     std::string getNome() const { return nome; }
     std::string getDepartamento() const { return departamento; }
