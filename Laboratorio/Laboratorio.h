@@ -4,12 +4,15 @@
 #include <vector>
 #include <string>
 #include "../Usuario/usuario.h"
-#include "../Estudante/estudante.h"
-#include "../PosGraduacao/posGraduacao.h"
 #include "../Reagente/reagente.h"
 #include "../Retirada/Retirada.h"
 #include <mysql-cppconn/mysqlx/xdevapi.h>
-class Gestor; // Para retirar a depedência circular
+
+// Para retirar a depedência circular
+class Gestor; 
+class Estudante;
+class PosGraduacao;
+
 using namespace mysqlx;
 
 class Laboratorio{
@@ -78,11 +81,12 @@ public:
     static std::vector<Laboratorio*> listarLaboratorios(Schema* db);
     //Imprime os dados dos laboratórios instanciados
     static void imprimirLaboratorios();
-
     //Adicionar gestor
     void adicionarGestor(Gestor* gestor);
    // liberar todos os laboratórios do vetor
     static void limparLaboratorios();
+    void adicionarEstudante(Estudante* estudante);
+    void removerEstudante(Estudante* estudante);
 };
 
 #endif

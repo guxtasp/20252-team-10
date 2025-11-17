@@ -1,5 +1,7 @@
 #include "../Usuario/usuario.h"
 #include "../Gestor/gestor.h"
+#include "../Estudante/estudante.h"
+#include "../PosGraduacao/posGraduacao.h"
 #include "../Laboratorio/Laboratorio.h"
 #include <string>
 #include <iostream>
@@ -139,7 +141,6 @@ void Gestor::deletarUsuario() {
     }
 }
 
-
 void Gestor::listarUsuarios() {
     std::cout << "\n=== LISTANDO USUÁRIOS (via Gestor) ===" << std::endl;
     std::cout << "Nome do Gestor: " << getNome() << std::endl;
@@ -230,3 +231,33 @@ void Gestor::associarLaboratorio(){
 
 }
 
+void Gestor::associarEstudanteAoLaboratorio(Estudante* estudante, int idLaboratorio, const std::string& papel){
+    Laboratorio* escolhido = nullptr; // Variavel que armazena o laboratorio escolhido
+    for (int i = 0; i < Laboratorio::laboratorios.size(); i++) {
+        if (Laboratorio::laboratorios[i]->getId() == idLaboratorio) {
+            escolhido = Laboratorio::laboratorios[i];
+            break;
+        }
+    }
+    if (!escolhido) {
+        std::cout << "Laboratório com ID " << idLaboratorio << " não encontrado.\n";
+        return;
+    }
+
+    Table tableAssociado = this->db->getTable("Associado");
+    RowResult result = tableAssociado.select("*")
+                                        .where("estudante_id = :e_id AND laboratorio_id = :l_id")
+                                        .bind("e_id", estudante->getId())
+                                        .bind("l_id", idLaboratorio)
+                                        .execute();
+    if (!result.fetchOne().isNull()) {
+        std::cout << "Estudante ID " << estudante->getId() 
+                    << " já está associado a este laboratório.\n";
+        return;
+    }
+    tableAssociado.insert("estudante_id", "laboratorio_id", "papel")
+                    .values(estudante->getId(), idLaboratorio, papel)
+                    .execute();
+
+    estudante->adicionarLaboratorio(escolhido);
+}

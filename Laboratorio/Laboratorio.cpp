@@ -1,4 +1,6 @@
-#include "../Laboratorio/Laboratorio.h"
+#include "Laboratorio.h"
+#include "../Estudante/estudante.h"
+#include "../PosGraduacao/posgraduacao.h"
 #include <sstream>
 #include <iostream>
 #include <iomanip>
@@ -7,13 +9,9 @@
 #include <mysql-cppconn/mysqlx/xdevapi.h>
 using namespace mysqlx;
 
+
 //Variavel estatica de laboratorios
-std::vector<Laboratorio *> Laboratorio::laboratorios;
-//Variavel estatica de estudantes de graduação
-std::vector<Estudante*> estudantesGraduacao;
-//Variavel estatica de estudantes de pos graduação
-std::vector<PosGraduacao*> estudantesPosGraduacao;
-std::vector<Gestor*> gestores;
+std::vector<Laboratorio*> Laboratorio::laboratorios;
 
 Laboratorio::Laboratorio(int id, const std::string &nome, const std::string &departamento)
     : id(id), nome(nome), departamento(departamento) {}
@@ -286,7 +284,6 @@ std::string Laboratorio::toString() const
     return "Laboratorio " + std::to_string(id) + ": " + nome + " (" + departamento + ")";
 }
 
-
 //Lista todos os laboratorios instanciados
 std::vector<Laboratorio*> Laboratorio::listarLaboratorios(Schema* db)
 {
@@ -306,7 +303,7 @@ std::vector<Laboratorio*> Laboratorio::listarLaboratorios(Schema* db)
     }
     return Laboratorio::laboratorios;
 };
-
+//Imprime os laboratorios disponiveis
 void Laboratorio::imprimirLaboratorios()
 {
     std::cout << "\n-----------------------------------------------\n";
@@ -325,6 +322,7 @@ void Laboratorio::imprimirLaboratorios()
         std::cout << "-----------------------------------------------\n";
 }
 
+//Adicionar gestor
 void Laboratorio::adicionarGestor(Gestor* gestor){
     this->gestores.push_back(gestor);
 };
@@ -336,4 +334,96 @@ void Laboratorio::limparLaboratorios() {
     }
     Laboratorio::laboratorios.clear(); // limpa o vetor
 }
+void Laboratorio::adicionarEstudante(Estudante* estudante){
+    //Verifica se o estudante esta no array de estudantes associado no vetor de graduação
+    for (int i = 0; i < estudantesGraduacao.size(); i++) {
+        if (estudantesGraduacao[i] == estudante) {
+            std::cout << "Aviso: Estudante " << estudante->getNome()
+                        << " já está associado ao laboratório " << nome
+                        << std::endl;
+                return;
+        }
+    }
+    //Verifica se o estudante esta no array de estudantes associado no vetor de graduação
+    for (int i = 0; i < estudantesPosGraduacao.size(); i++) {
+        if (estudantesPosGraduacao[i] == estudante) {
+            std::cout << "Aviso: Estudante " << estudante->getNome()
+                        << " já está associado ao laboratório " << nome
+                        << std::endl;
+            return;
+        }
+    }
+    // se for estudante de graduação aloca no seu vetor
+    if (estudante->getNivelAcesso() == 3) {
+        estudantesGraduacao.push_back(estudante);
+        std::cout << "Estudante de Graduação " << estudante->getNome()
+                    << " adicionado ao " << nome
+                    << std::endl;
+        return;
+    }
+    if (estudante->getNivelAcesso() == 2) {
+        PosGraduacao* posGrad = dynamic_cast<PosGraduacao*>(estudante); // se for posgraduação faz um casting 
+        if (posGrad != nullptr) { // verifica se nao é nulo, se nao for, adiciona no evtor de pos graduação
+            estudantesPosGraduacao.push_back(posGrad);
+            std::cout << "Estudante de Pós-Graduação " << estudante->getNome()
+                        << " adicionado ao " << nome
+                        <<std::endl;
+        } else {
+            std::cerr << "Erro: Tentativa de adicionar Estudante de Pós-Graduação" << std::endl;
+        }
+        return;
+    }
+    std::cerr << "Aviso: Nível de estudante desconhecido: "
+                << estudante->getNivel()
+                << ". Estudante não adicionado lista de Estudantes do laboratório."
+                << std::endl;
 
+}
+// Remove estudante do vetor designado 
+void Laboratorio::removerEstudante(Estudante* estudante) {
+    bool removido = false; // flag se foi removido
+
+    // [GRADUAÇÃO]
+    std::vector<Estudante*> novoVetorGraduacao; // Cria um novo vetor
+    for (int i = 0; i < estudantesGraduacao.size(); i++) {
+        Estudante* atual = estudantesGraduacao[i];
+        if (atual != estudante) {// se for diferente 
+            novoVetorGraduacao.push_back(atual); // adiciona no novo vetor
+        } else { // se for igual, informa a flag
+            removido = true; 
+        }
+    }
+    if (removido) { // se for verdadeiro
+        estudantesGraduacao.swap(novoVetorGraduacao); // atualiza o novo vetor
+    }
+
+    //[POS GRADUAÇÃO]
+    // casting para PosGraduacao
+    // Se for um estudante de graduação, o resultado será nullptr
+    PosGraduacao* posGrad = dynamic_cast<PosGraduacao*>(estudante);
+    if (posGrad) {
+        std::vector<PosGraduacao*> novoVetorPosGraduacao;
+        bool removidoPos = false;
+            for (int i = 0; i < estudantesPosGraduacao.size(); i++) {
+            PosGraduacao* atual = estudantesPosGraduacao[i];
+            if (atual != posGrad) {
+                // Mantém o estudante caso nao sej ao que tem que remover
+                novoVetorPosGraduacao.push_back(atual);
+            } else {
+                // Encontrou o estudante que tem que remover
+                removidoPos = true;
+            }
+        }
+        if (removidoPos) {
+            // Troca o vetor original pela versão sem o estudante removido
+            estudantesPosGraduacao.swap(novoVetorPosGraduacao);
+            // Marca que houve remoção 
+            removido = true;
+        }
+    }
+    if (removido) {
+        std::cout << "Estudante " << estudante->getNome() << " removido." << std::endl;
+    } else {
+        std::cout << "Aviso: Estudante " << estudante->getNome() << " não encontrado." << std::endl;
+    }
+}

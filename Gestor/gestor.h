@@ -22,6 +22,7 @@ class Gestor : public Usuario{
         void deletarUsuario();
         void listarUsuarios();
         void associarLaboratorio();
+        void associarEstudanteAoLaboratorio(Estudante* estudante, int idLaboratorio, const std::string& papel);
 };
 
 #endif
