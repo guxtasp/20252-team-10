@@ -2,6 +2,7 @@
 #define CLASSE_GESTOR
 
 #include "../Usuario/usuario.h"
+#include "../Laboratorio/Laboratorio.h"
 #include <string>
 #include <mysql-cppconn/mysqlx/xdevapi.h>
 #include "../Reagente/reagente.h"
@@ -13,8 +14,7 @@ using namespace mysqlx;
 
 class Gestor : public Usuario {
     private:
-    // O laboratorio que este Gestor gerencia
-    Laboratorio* _meuLaboratorio;
+    Laboratorio * laboratorio; // O laboratorio que este Gestor gerencia
     public:
         //Construtor
         Gestor(std::string nome, std::string email, std::string senha, int nivelAcesso, Schema* db);
@@ -42,14 +42,14 @@ class Gestor : public Usuario {
         void cadastrarUsuario();
         void deletarUsuario();
         void listarUsuarios();
+        void associarLaboratorio();
+        void associarEstudanteAoLaboratorio(Estudante* estudante, int idLaboratorio, const std::string& papel);
         void carregarUsuarios();
 
         //sets
         void setLaboratorio(Laboratorio* lab);
-
         //cadastra um novo reagente no laboratorio gerenciado por este gestor
         void cadastrarReagente();
-
         //O Gestor tem acesso total
         void acessarReagenteRestrito(int idReagente) override;
 };

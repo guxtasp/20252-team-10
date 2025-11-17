@@ -1,6 +1,8 @@
 #include "../Usuario/usuario.h"
 #include "../Gestor/gestor.h"
 #include "../Estudante/estudante.h"
+#include "../PosGraduacao/posGraduacao.h"
+#include "../Laboratorio/Laboratorio.h"
 #include <string>
 #include <iomanip>
 #include <iostream>
@@ -27,8 +29,8 @@ int Gestor::capacidadePos = 10;
 Gestor::Gestor(std::string nome, std::string email, std::string senha, int nivelAcesso, Schema* db) :
     Usuario(nome, email, senha, nivelAcesso, db) {
 
-    //Inicializa o ponteiro como nulo
-    this->_meuLaboratorio = nullptr;
+    //Inicializa o ponteiro como nulo 
+    this->laboratorio = nullptr;
     };
 
 // Destrutor
@@ -295,7 +297,125 @@ void Gestor::deletarUsuario() {
     }
 }
 
+void Gestor::listarUsuarios() {
+    std::cout << "\n=== LISTANDO USUÁRIOS (via Gestor) ===" << std::endl;
+    std::cout << "Nome do Gestor: " << getNome() << std::endl;
+    std::cout << "Email do Gestor: " << getEmail() << std::endl;
+    std::cout << "Nível de Acesso: " << getNivelAcesso() << std::endl;
+    std::cout << "========================================\n" << std::endl;
+}
 
+// Associa gestor ao laboratorio
+void Gestor::associarLaboratorio(){
+    // Verifica se o gestor já está associado a um laboratório
+    if (this->laboratorio != nullptr) {
+        std::cout << "O gestor já está associado em laboratório: "
+                    << this->laboratorio->getNome() << std::endl; // E informa qual 
+        return;
+    }
+
+    //Verifica se no DB esta associado
+    Table table = this->db->getTable("Gestor"); // Obtém a tabela "Gestor"
+    RowResult result = table.select("laboratorio_id") // Seleciona a coluna "laboratorio_id"
+                            .where("id = :id")       // Filtra pelo ID do gestor
+                            .bind("id", this->getId()) // Substitui o parâmetro ":id"
+                            .execute();              // Executa a consulta
+    Row row = result.fetchOne(); // Busca a primeira linha do resultado
+
+    if (!row.isNull()) {  // existe laboratório no banco
+        int idLaboratorioBD = row[0];
+        // Caso memória não esteja sincronizada, for divergente do bd e do objeto
+        if (this->laboratorio == nullptr || this->laboratorio->getId() != idLaboratorioBD) {
+             // Percorre todos os laboratórios carregados em memória
+            for (int i = 0; i < Laboratorio::laboratorios.size(); i++) {
+                if (Laboratorio::laboratorios[i]->getId() == idLaboratorioBD) {
+                    this->laboratorio = Laboratorio::laboratorios[i]; // Atualiza objeto em memória
+                    break; // Sai do loop após encontrar
+                }
+            }
+        }
+        // Imprime informação sobre a associação existente
+        std::cout << "O gestor já está associado a um laboratório no banco de dados (ID: " 
+                    << idLaboratorioBD << "- "<< this->laboratorio->getNome()  << ").\n";
+        return;   // Sai do método, não associa novamente  
+    }
+
+
+    //Verifica se há laboratorios instanciados
+    if (Laboratorio::laboratorios.empty()) {
+        std::cout << "Nenhum laboratório carregado. \n";
+        return;
+    }
+    //Imprime os laboratórios cadastrados
+    Laboratorio::imprimirLaboratorios();
+
+    //Usuario escolhe qual laboratorio associar
+    int id;
+    std::cout << "\nDigite o ID do laboratório que deseja gerenciar: ";
+    std::cin >> id;
+
+    //Variavel armazena o laboratorio escolhido pelo gestor
+    Laboratorio* escolhido = nullptr;
+    //Busca em laboratorios cadastrados baseado no ID
+    for (int i = 0; i < Laboratorio::laboratorios.size(); i++) {
+        Laboratorio* laboratorio = Laboratorio::laboratorios[i]; // armazena o ponteiro do laboratorio na posicao i
+        if (laboratorio->getId() == id) { // Quando o id do escolhido for igual dos armazenado
+            escolhido = laboratorio; //armazena o ponteiro
+            break; //Para a iteração
+        }
+    }
+    if (escolhido == nullptr) {
+        std::cout << "Laboratório não encontrado.\n";
+        return;
+    }
+    // Associa ao gestor, armazena no objeto
+    this->laboratorio = escolhido;
+    //Adiciona o gestor dentro do laboratorio (armazena no vetor de gestores)
+    escolhido->adicionarGestor(this);
+
+    // Atualiza no DB 
+    table = this->db->getTable("Gestor"); // Obtém a tabela novamente
+    table.update()
+         .set("laboratorio_id", id)       // Define o novo ID do laboratório
+         .where("id = :id")               // Aplica a atualização ao gestor correto
+         .bind("id", this->getId())       // Substitui o parâmetro ":id"
+         .execute();                      // Executa a atualização
+    //Confirmação para o usuário
+    std::cout << "\nGestor gerencia o laboratório: "
+                << escolhido->getNome()
+                << std::endl;
+
+}
+
+void Gestor::associarEstudanteAoLaboratorio(Estudante* estudante, int idLaboratorio, const std::string& papel){
+    Laboratorio* escolhido = nullptr; // Variavel que armazena o laboratorio escolhido
+    for (int i = 0; i < Laboratorio::laboratorios.size(); i++) {
+        if (Laboratorio::laboratorios[i]->getId() == idLaboratorio) {
+            escolhido = Laboratorio::laboratorios[i];
+            break;
+        }
+    }
+    if (!escolhido) {
+        std::cout << "Laboratório com ID " << idLaboratorio << " não encontrado.\n";
+        return;
+    }
+
+    Table tableAssociado = this->db->getTable("Associado");
+    RowResult result = tableAssociado.select("*")
+                                        .where("estudante_id = :e_id AND laboratorio_id = :l_id")
+                                        .bind("e_id", estudante->getId())
+                                        .bind("l_id", idLaboratorio)
+                                        .execute();
+    if (!result.fetchOne().isNull()) {
+        std::cout << "Estudante ID " << estudante->getId() 
+                    << " já está associado a este laboratório.\n";
+        return;
+    }
+    tableAssociado.insert("estudante_id", "laboratorio_id", "papel")
+                    .values(estudante->getId(), idLaboratorio, papel)
+                    .execute();
+
+    estudante->adicionarLaboratorio(escolhido);
 // Metodo para cadastrar reagente
 void Gestor::cadastrarReagente() {
     // Variaveis para guardar os dados da tabela base Reagente
@@ -379,6 +499,16 @@ void Gestor::cadastrarReagente() {
                 .values(reagenteId, densidade, volume)
                 .execute();
 
+    if (laboratorio) { //
+        // Delega a tarefa de cadastrar regaente para o laboratorio
+        laboratorio->cadastrarNovoReagente(
+            nome, dataValidade, quantidade, quantidadeCritica, local, 
+            nivelAcesso, unidade, marca, codRef, tipo, 
+            densidade, volume, massa, estadoFisico
+        );
+    } else {
+        // Mensagem de erro se o gestor nao gerencia um laboratorio
+        std::cerr << "ERRO: Gestor nao esta alocado a um laboratorio." << std::endl;
             // Imprime a confirmacao para o usuario
             std::cout << "Reagente Liquido '" << nome << "' cadastrado com sucesso!\n";
 
@@ -403,7 +533,7 @@ void Gestor::cadastrarReagente() {
 
     // Metodo para vincular o gestor a um laboratorio
     void Gestor::setLaboratorio(Laboratorio* lab) {
-        this->_meuLaboratorio = lab;
+        this-laboratorio = lab;
     }
 
     // Implementação da função virtual. O Gestor ignora a checagem de nível.
