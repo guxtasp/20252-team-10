@@ -8,13 +8,19 @@
 #include <algorithm>
 #include <mysql-cppconn/mysqlx/xdevapi.h>
 using namespace mysqlx;
-
-
 //Variavel estatica de laboratorios
 std::vector<Laboratorio*> Laboratorio::laboratorios;
+#include <iostream>
 
-Laboratorio::Laboratorio(int id, const std::string &nome, const std::string &departamento)
-    : id(id), nome(nome), departamento(departamento) {}
+Laboratorio::Laboratorio(int id, const std::string &nome, const std::string &departamento, Schema* db)
+    : id(id), nome(nome), departamento(departamento), db(db) 
+{
+    // Se a conexao com o DB existir, carrega os reagentes
+    if (this->db) {
+        std::cout << "Laboratorio conectado ao DB. Reagentes sendo carregados" << std::endl;
+        carregarReagentesDoDB();
+    }
+}
 
 Laboratorio::~Laboratorio()
 {
@@ -23,99 +29,236 @@ Laboratorio::~Laboratorio()
     {
         delete retirada;
     }
+//Limpa a memoria dos reagentes carregados
+    for (auto reagente : reagentes)
+    {
+        delete reagente;
+    }
 }
 
-// // Gerenciamento de Reagentes
-// std::string Laboratorio::adicionarReagente(Reagente *reagente)
-// {
-//     // Verifica se reagente ja existe
-//     for (auto reag_existente : reagentes)
-//     {
-//         if (reag_existente->getNome() == reagente->getNome())
-//         {
-//             return "Reagente '" + reagente->getNome() + "' ja existe. Use atualizar estoque.";
-//         }
-//     }
+// Implementacao do metodo que carrega reagentes do DB
+void Laboratorio::carregarReagentesDoDB() {
+    try {
+        Table reagenteTable = db->getTable("Reagente");
 
-//     reagentes.push_back(reagente);
-//     return "Reagente '" + reagente->getNome() + "' adicionado com sucesso!";
-// }
-// // Busca reagente por nome
-// Reagente *Laboratorio::buscarReagente(const std::string &nome)
-// {
-//     for (auto reagente : reagentes)
-//     {
-//         if (reagente->getNome().find(nome) != std::string::npos)
-//         {
-//             return reagente;
-//         }
-//     }
-//     return nullptr;
-// }
-// // Se nenhum filtro for fornecido, lista todos os reagentes.
-// std::vector<Reagente *> Laboratorio::listarReagentes(const std::string &filtroNome)
-// {
-//     if (filtroNome.empty())
-//     {
-//         return reagentes;
-//     }
-//     // Busca reagentes com o nome contido no string
-//     std::vector<Reagente *> resultado;
-//     for (auto reagente : reagentes)
-//     {
-//         if (reagente->getNome().find(filtroNome) != std::string::npos)
-//         {
-//             resultado.push_back(reagente);
-//         }
-//     }
-//     return resultado;
-// }
-// // Lista reagentes por local de armazenamento
-// std::vector<Reagente *> Laboratorio::listarReagentesPorLocal(const std::string &local)
-// {
-//     std::vector<Reagente *> resultado;
-//     for (auto reagente : reagentes)
-//     {
-//         if (reagente->getLocalArmazenamento().find(local) != std::string::npos)
-//         {
-//             resultado.push_back(reagente);
-//         }
-//     }
-//     return resultado;
-// }
+        //LEFT JOIN é usado para pegar dados de Liquido ou Solido
+        RowResult res = reagenteTable.select(
+            "Reagente.id", "Reagente.nome", "Reagente.quantidade", 
+            "Reagente.quantidadeCritica", "Reagente.codigoReferencia", "Reagente.marca", 
+            "Reagente.localArmazenamento", "Reagente.nivelAcesso", "Reagente.unidadeMedida", 
+            "Reagente.dataValidade", // Colunas do Reagente
+            "RL.densidade", "RL.volume", // Colunas do Liquido
+            "RS.massa", "RS.estadoFisico" // Colunas do Solido
+        )
+        .leftJoin("ReagenteLiquido as RL", "Reagente.id = RL.id")
+        .leftJoin("ReagenteSolido as RS", "Reagente.id = RS.id")
+        .execute();
 
-// // Gerenciamento de Retiradas
-// std::string Laboratorio::registrarRetirada(Usuario *usuario, const std::string &nomeReagente, float quantidade)
-// {
-//     Reagente *reagente = buscarReagente(nomeReagente);
-//     if (!reagente)
-//     {
-//         return "Erro: Reagente '" + nomeReagente + "' nao encontrado";
-//     }
+        //Criar objetos
+        for (Row row : res.fetchAll()) {
+            Reagente* novoReagente = nullptr;
+            
+            // Pega dados da tabela base
+            int id = row[0].get<int>();
+            std::string nome = row[1].get<std::string>();
+            int qtd = row[2].get<int>();
+            int qtdCritica = row[3].get<int>();
+            std::string codRef = row[4].get<std::string>();
+            std::string marca = row[5].get<std::string>();
+            std::string local = row[6].get<std::string>();
+            int nivelAcesso = row[7].get<int>();
+            std::string unidade = row[8].get<std::string>();
+            std::string validade = row[9].get<std::string>();
 
-//     // Verifica se reagente esta vencido
-//     if (reagente->estaVencido())
-//     {
-//         return "Erro: Reagente '" + reagente->getNome() + "' esta vencido";
-//     }
+            // Verifica se e Liquido (checa se a coluna do JOIN nao e nula)
+            if (!row[10].isNull()) {
+                double densidade = row[10].get<double>();
+                double volume = row[11].get<double>();
+                novoReagente = new ReagenteLiquido(id, nome, validade, qtd, qtdCritica, local, 
+                                                   nivelAcesso, unidade, marca, codRef, 
+                                                   densidade, volume); //
+            } 
+            // Verifica se e Solido
+            else if (!row[12].isNull()) {
+                double massa = row[12].get<double>();
+                std::string estado = row[13].get<std::string>();
+                novoReagente = new ReagenteSolido(id, nome, validade, qtd, qtdCritica, local, 
+                                                  nivelAcesso, unidade, marca, codRef, 
+                                                  massa, estado); //
+            }
 
-//     // Cria retirada
-//     Retirada *novaRetirada = new Retirada(retiradas.size() + 1, usuario, reagente, quantidade);
+            if (novoReagente) {
+                this->reagentes.push_back(novoReagente); // Adiciona no vector
+            }
+        }
+        std::cout << this->reagentes.size() << " reagentes carregados do DB para a memoria." << std::endl;
 
-//     // Confirma retirada
-//     std::string resultado = novaRetirada->confirmarRetirada();
+    } catch (const mysqlx::Error &err) {
+        std::cerr << "Erro ao carregar reagentes do DB: " << err.what() << std::endl;
+    }
+}
 
-//     if (resultado.find("confirmada") != std::string::npos)
-//     {
-//         retiradas.push_back(novaRetirada);
-//     }
-//     else
-//     {
-//         delete novaRetirada;
-//     }
+void Laboratorio::cadastrarNovoReagente(
+    std::string nome, std::string dataValidade, int quantidade, 
+    int quantidadeCritica, std::string local, int nivelAcesso, 
+    std::string unidade, std::string marca, std::string codRef,
+    int tipo, double densidade, double volume, 
+    double massa, std::string estadoFisico)
+{
+    //insercao no DB
+    try {
+        Table reagenteTable = db->getTable("Reagente");
+        
+        Result res = reagenteTable.insert(
+            "nome", "dataValidade", "quantidade", "quantidadeCritica", 
+            "localArmazenamento", "nivelAcesso", "unidadeMedida", "marca", "codigoReferencia"
+        ).values(nome, dataValidade, quantidade, quantidadeCritica, 
+                 local, nivelAcesso, unidade, marca, codRef)
+         .execute(); //
+        
+        int reagenteId = res.getAutoIncrementValue(); // Pega o ID criado
 
-//     return resultado;
-// }
+        Reagente* novoReagente = nullptr; // Ponteiro para objeto em memoria
+
+        if (tipo == 1) { 
+            db->getTable("ReagenteLiquido")
+                .insert("id", "densidade", "volume")
+                .values(reagenteId, densidade, volume)
+                .execute(); //
+            
+            // Cria o objeto para guardar no vector
+            novoReagente = new ReagenteLiquido(reagenteId, nome, dataValidade, quantidade, 
+                                               quantidadeCritica, local, nivelAcesso, 
+                                               unidade, marca, codRef, densidade, volume); //
+            
+            std::cout << "Reagente Liquido '" << nome << "' cadastrado com sucesso!\n"; //
+        
+        } else if (tipo == 2) { 
+            db->getTable("ReagenteSolido")
+                .insert("id", "massa", "estadoFisico")
+                .values(reagenteId, massa, estadoFisico)
+                .execute(); //
+
+            // Cria o objeto para guardar no vector
+            novoReagente = new ReagenteSolido(reagenteId, nome, dataValidade, quantidade, 
+                                              quantidadeCritica, local, nivelAcesso, 
+                                              unidade, marca, codRef, massa, estadoFisico); //
+            
+            std::cout << "Reagente Solido '" << nome << "' cadastrado com sucesso!\n"; //
+        }
+
+        //Adiciona o novo objeto criado no vector em memoria
+        if (novoReagente) {
+            this->reagentes.push_back(novoReagente);
+            std::cout << "Reagente adicionado tambem ao vetor em memoria." << std::endl;
+        }
+        
+    } catch (const mysqlx::Error &err) {
+        std::cerr << "Erro ao cadastrar reagente: " << err.what() << std::endl; //
+    }
+}
+
+// Busca reagente por nome
+Reagente *Laboratorio::buscarReagente(const std::string &nome)
+{
+    for (auto reagente : reagentes)
+    {
+        if (reagente->getNome().find(nome) != std::string::npos)
+        {
+            return reagente;
+        }
+    }
+    return nullptr;
+}
+// Se nenhum filtro for fornecido, lista todos os reagentes.
+std::vector<Reagente *> Laboratorio::listarReagentes(const std::string &filtroNome)
+{
+    if (filtroNome.empty())
+    {
+        return reagentes;
+    }
+    // Busca reagentes com o nome contido no string
+    std::vector<Reagente *> resultado;
+    for (auto reagente : reagentes)
+    {
+        if (reagente->getNome().find(filtroNome) != std::string::npos)
+        {
+            resultado.push_back(reagente);
+        }
+    }
+    return resultado;
+}
+// Lista reagentes por local de armazenamento
+std::vector<Reagente *> Laboratorio::listarReagentesPorLocal(const std::string &local)
+{
+    std::vector<Reagente *> resultado;
+    for (auto reagente : reagentes)
+    {
+        if (reagente->getLocalArmazenamento().find(local) != std::string::npos)
+        {
+            resultado.push_back(reagente);
+        }
+    }
+    return resultado;
+}
+
+// Gerenciamento de Retiradas
+std::string Laboratorio::registrarRetirada(Usuario *usuario, const std::string &nomeReagente, float quantidade)
+{
+    Reagente *reagente = buscarReagente(nomeReagente);
+    if (!reagente)
+    {
+        return "Erro: Reagente '" + nomeReagente + "' nao encontrado";
+    }
+
+    // Verifica se reagente esta vencido
+    if (reagente->estaVencido())
+    {
+        return "Erro: Reagente '" + reagente->getNome() + "' esta vencido";
+    }
+
+    // Cria retirada
+    Retirada *novaRetirada = new Retirada(retiradas.size() + 1, usuario, reagente, quantidade);
+
+    // Confirma retirada
+    std::string resultado = novaRetirada->confirmarRetirada();
+
+    // Se a retirada na memoria deu certo, atualiza o DB
+    if (resultado.find("Erro:") == std::string::npos) 
+    {
+        try {
+            // Pega a nova quantidade do objeto em memoria
+            int novaQuantidade = reagente->getQuantidade();
+            int reagenteId = reagente->getId();
+
+            // Envia o comando para o banco de dados
+            db->getTable("Reagente")
+                .modify("id = :id") // Encontra a linha pelo ID
+                .set("quantidade", novaQuantidade) // Define a nova quantidade
+                .bind("id", reagenteId) // Associa o ID
+                .execute();
+            
+            std::cout << "Banco de dados atualizado para a retirada." << std::endl;
+
+        } catch (const mysqlx::Error &err) {
+            std::cerr << "ERRO de DB ao atualizar quantidade: " << err.what() << std::endl;
+            // Se o DB falhar, cancela a retirada
+            novaRetirada->cancelarRetirada(); //
+            delete novaRetirada;
+            return "Erro no banco ao registrar retirada. Estoque em memoria revertido.";
+        }
+        
+        // So adiciona a retirada na lista se tudo deu certo
+        retiradas.push_back(novaRetirada); //
+    }
+    else
+    {
+        // Se a retirada na memoria falhou (ex: sem estoque)
+        delete novaRetirada; //
+    }
+
+    return resultado; // Retorna a mensagem de sucesso ou erro
+}
 
 // // Lista todas as retiradas de um usuario especifico
 // std::vector<Retirada *> Laboratorio::listarRetiradasUsuario(Usuario *usuario)

@@ -7,6 +7,10 @@
 #include "../Reagente/reagente.h"
 #include "../Retirada/Retirada.h"
 #include <mysql-cppconn/mysqlx/xdevapi.h>
+#include "../Reagente/reagenteliquido.h"
+#include "../Reagente/reagentesolido.h"
+
+using namespace mysqlx;
 
 // Para retirar a depedência circular
 class Gestor; 
@@ -27,12 +31,14 @@ private:
     std::vector<Retirada *> retiradas;
     std::vector<Gestor *> gestores;
 
+
     // Metodos privados
     bool verificarRetiradasPendentes(Usuario *usuario);
+    void carregarReagentesDoDB(); // Metodo para carregar dados do DB
 
 public:
     // Constructor e Destructor
-    Laboratorio(int id, const std::string &nome, const std::string &departamento);
+    Laboratorio(int id, const std::string &nome, const std::string &departamento, Schema* db);
     ~Laboratorio();
 
     // // Gerenciamento de Reagentes
@@ -40,6 +46,19 @@ public:
     // Reagente *buscarReagente(const std::string &nome);
     // std::vector<Reagente *> listarReagentes(const std::string &filtroNome = "");
     // std::vector<Reagente *> listarReagentesPorLocal(const std::string &local);
+    //Metodo para criar e salvar o reagente
+    void cadastrarNovoReagente(
+        std::string nome, std::string dataValidade, int quantidade, 
+        int quantidadeCritica, std::string local, int nivelAcesso, 
+        std::string unidade, std::string marca, std::string codRef,
+        int tipo, double densidade, double volume, 
+        double massa, std::string estadoFisico
+    );
+
+    // Metodo para Buscar Reagentes
+    Reagente *buscarReagente(const std::string &nome); 
+    std::vector<Reagente *> listarReagentes(const std::string &filtroNome = "");
+    std::vector<Reagente *> listarReagentesPorLocal(const std::string &local); 
 
     // // Gerenciamento de Retiradas
     // std::string registrarRetirada(Usuario *usuario, const std::string &nomeReagente, float quantidade);

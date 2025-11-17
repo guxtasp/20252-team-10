@@ -3,6 +3,7 @@
 
 #include <string>
 #include <mysql-cppconn/mysqlx/xdevapi.h>
+#include <mysql-cppcon/mysqlx/xdevapi.h>
 using namespace mysqlx;
 
 class Usuario
@@ -57,6 +58,13 @@ public:
     bool validarSenha(const std::string senha);
     bool verificarSenha(const std::string senha);
     void alterarSenha(const std::string senhaAntiga, const std::string senhaNova);
+    
+    //Consulta e lista os reagentes do banco de dados, respeitando o nivel de acesso do usuario
+    virtual void consultarReagente();
+    
+    //Metodo virtual puro que obriga todas as classes filhas a implementarem
+    virtual void acessarReagenteRestrito(int idReagente) = 0;
 };
+
 
 #endif

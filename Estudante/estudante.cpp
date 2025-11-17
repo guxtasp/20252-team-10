@@ -2,6 +2,7 @@
 #include "../Laboratorio/Laboratorio.h"
 #include <iostream>
 #include <vector>
+using namespace mysqlx;
 
 // Construtor
 Estudante::Estudante(std::string nome, std::string email, std::string senha, int nivelAcesso, 
@@ -119,10 +120,6 @@ void Estudante::associarLaboratorio(Laboratorio* laboratorio, const std::string&
     // Verifica se o ponteiro do laboratorio e db são inválidos
     if (!laboratorio || !db) {
         std::cerr << "[Erro] Paramêtros do laboratorio são nulos." << std::endl;
-        return;
-    }
-
-    try {
         //Acessa a tabela associado para associar estudante ao laboratorio 
         //Tal tabela representa as possibilidades de um estudante esta associado a varios laboratorios
         //E o laboratório poder ter varios estudantes
@@ -172,4 +169,49 @@ void Estudante::associarLaboratorio(Laboratorio* laboratorio, const std::string&
         std::cerr << "Erro geral ao associar laboratório: " << ex.what() << std::endl;
         }
 }
+// Esta função checa o nivel de acesso antes de exibir.
+void Estudante::acessarReagenteRestrito(int idReagente) {
+    
+    std::cout << "\n(Estudante) Tentando acessar Reagente ID: " << idReagente << "\n";
+    if (db == nullptr) {
+        std::cerr << "ERRO: Estudante não está conectado ao banco." << std::endl;
+        return;
+    }
 
+    try {
+        Table reagenteTable = db->getTable("Reagente");
+        
+        // Busca o reagente específico pelo ID
+        RowResult res = reagenteTable.select(
+            "id", "nome", "quantidade", "unidadeMedida", 
+            "localArmazenamento", "dataValidade", "nivelAcesso" 
+        ).where("id = :id").bind("id", idReagente).execute();
+
+        if (res.count() == 0) {
+            std::cout << "Reagente com ID " << idReagente << " não encontrado." << std::endl;
+            return;
+        }
+
+        Row row = res.fetchOne();
+        int nivelDoReagente = row[6].get<int>(); // Nivel de segurança do reagente
+
+        // Checa a permissão: Nivel do Estudante (this->nivelAcesso) deve ser menor ou igual ao nivel do reagente
+        if (this->nivelAcesso <= nivelDoReagente) {
+            // Se tem permissão, exibe os dados
+            std::cout << "Acesso Permitido (Nível " << this->nivelAcesso << "):\n";
+            std::cout << "Nome:    " << row[1].get<std::string>() << "\n";
+            std::cout << "Qtde:    " << row[2].get<int>() << " " << row[3].get<std::string>() << "\n";
+            std::cout << "Local:   " << row[4].get<std::string>() << "\n";
+            std::cout << "Validade: " << row[5].get<std::string>() << "\n";
+        } else {
+            // Se não tem permissao, nega o acesso
+            std::cout << "ACESSO NEGADO: Este reagente requer Nível " 
+                      << nivelDoReagente << ".\n";
+            std::cout << "(Seu nível é " << this->nivelAcesso << ").\n";
+        }
+        std::cout << std::endl;
+
+    } catch (const mysqlx::Error &err) {
+        std::cerr << "Erro ao acessar reagente: " << err.what() << std::endl;
+    }
+}

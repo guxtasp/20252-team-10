@@ -46,5 +46,8 @@ class Estudante : public Usuario{
         void removerLaboratorio(Laboratorio* laboratorio, Schema* db);
         // Associa estudante ao laboratorio
         void associarLaboratorio(Laboratorio* laboratorio, const std::string& papel, Schema* db);
+        // esta funçao checa se o nivel de acesso do estudante e suficiente.
+        void acessarReagenteRestrito(int idReagente) override;
 };
+
 #endif

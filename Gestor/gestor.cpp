@@ -8,7 +8,11 @@
 
 // Construtor
 Gestor::Gestor(std::string nome, std::string email, std::string senha, int nivelAcesso, Schema* db) : 
-    Usuario(nome, email, senha, nivelAcesso, db) {};
+    Usuario(nome, email, senha, nivelAcesso, db) {
+
+    //Inicializa o ponteiro como nulo 
+    this->laboratorio = nullptr;
+    };
 
 // Destrutor
 Gestor::~Gestor() {}
@@ -260,4 +264,113 @@ void Gestor::associarEstudanteAoLaboratorio(Estudante* estudante, int idLaborato
                     .execute();
 
     estudante->adicionarLaboratorio(escolhido);
+// Metodo para cadastrar reagente
+void Gestor::cadastrarReagente() {
+    // Variaveis para guardar os dados da tabela base Reagente
+    std::string nome, dataValidade, local, unidade, marca, codRef;
+    int quantidade, quantidadeCritica, nivelAcesso;
+    
+    std::cout << "Cadastro de Novo Reagente \n";
+    std::cout << "Nome: ";
+    std::cin.ignore(); // Ignora o 'Enter' anterior
+    std::getline(std::cin, nome);
+    std::cout << "Data de Validade (AAAA-MM-DD): ";
+    std::cin >> dataValidade;
+    std::cout << "Quantidade: ";
+    std::cin >> quantidade;
+    std::cout << "Quantidade Critica: ";
+    std::cin >> quantidadeCritica;
+    std::cout << "Local de Armazenamento: ";
+    std::cin.ignore();
+    std::getline(std::cin, local);
+    std::cout << "Nivel de Acesso (1, 2 ou 3): ";
+    std::cin >> nivelAcesso;
+    std::cout << "Unidade de Medida (ex: 'ml', 'g'): ";
+    std::cin >> unidade;
+    std::cout << "Marca: ";
+    std::cin.ignore();
+    std::getline(std::cin, marca);
+    std::cout << "Codigo de Referencia: ";
+    std::cin >> codRef;
+
+    std::cout << "Tipo de Reagente:\n";
+    std::cout << "Digite 1 se for Liquido \n Digite 2 se for Solido \n";
+    int tipo;
+    std::cin >> tipo;
+
+    // Declara as variaveis de tipo
+    //densidade e volume so serao usadas se tipo == 1
+    // massa e estadoFisico so serao usadas se tipo == 2
+    double densidade = 0.0;
+    double volume = 0.0;
+    double massa = 0.0;
+    std::string estadoFisico; 
+
+    if (tipo == 1) { // Liquido
+        std::cout << "Densidade: ";
+        std::cin >> densidade;
+        std::cout << "Volume: ";
+        std::cin >> volume;
+        
+    } else if (tipo == 2) { // Solido
+        std::cout << "Massa: ";
+        std::cin >> massa;
+        
+        // Pergunta o estado fisico que é um atributo da classe ReagenteSolido
+        std::cout << "Estado Fisico (ex: 'po', 'cristal'): ";
+        std::cin.ignore(); // Ignora o 'Enter' da leitura da massa
+        std::getline(std::cin, estadoFisico);
+    }
+
+    if (laboratorio) { //
+        // Delega a tarefa de cadastrar regaente para o laboratorio
+        laboratorio->cadastrarNovoReagente(
+            nome, dataValidade, quantidade, quantidadeCritica, local, 
+            nivelAcesso, unidade, marca, codRef, tipo, 
+            densidade, volume, massa, estadoFisico
+        );
+    } else {
+        // Mensagem de erro se o gestor nao gerencia um laboratorio
+        std::cerr << "ERRO: Gestor nao esta alocado a um laboratorio." << std::endl;
+    }
+}
+    
+// Implementação da função virtual. O Gestor ignora a checagem de nível.
+void Gestor::acessarReagenteRestrito(int idReagente) {
+    
+    std::cout << "\n(Gestor) Acessando Reagente ID: " << idReagente << "\n";
+    if (db == nullptr) {
+        std::cerr << "ERRO: Gestor não está conectado ao banco." << std::endl;
+        return;
+    }
+
+    try {
+        Table reagenteTable = db->getTable("Reagente");
+        
+        // Busca o reagente pelo ID
+        RowResult res = reagenteTable.select(
+            "id", "nome", "quantidade", "unidadeMedida", 
+            "localArmazenamento", "dataValidade", "nivelAcesso"
+        ).where("id = :id").bind("id", idReagente).execute();
+
+        if (res.count() == 0) {
+            std::cout << "Reagente com ID " << idReagente << " não encontrado." << std::endl;
+            return;
+        }
+
+        // Pega os detalhes
+        Row row = res.fetchOne();
+
+        // O Gestor imprime tudo (não há checagem de nível)
+        std::cout << "Acesso Permitido (Nível Gestor):\n";
+        std::cout << "Nome:    " << row[1].get<std::string>() << "\n";
+        std::cout << "Qtde:    " << row[2].get<int>() << " " << row[3].get<std::string>() << "\n";
+        std::cout << "Local:   " << row[4].get<std::string>() << "\n";
+        std::cout << "Validade: " << row[5].get<std::string>() << "\n";
+        std::cout << "(Nível do reagente: " << row[6].get<int>() << ")\n";
+        std::cout << "-------------------------------------\n";
+
+    } catch (const mysqlx::Error &err) {
+        std::cerr << "Erro ao acessar reagente: " << err.what() << std::endl;
+    }
 }
