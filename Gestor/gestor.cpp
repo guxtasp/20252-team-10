@@ -4,10 +4,29 @@
 #include "../PosGraduacao/posGraduacao.h"
 #include "../Laboratorio/Laboratorio.h"
 #include <string>
+#include <iomanip>
 #include <iostream>
 
+
+Usuario** Gestor::usuariosCarregados = new Usuario*[10];
+int Gestor::quantidadeUsuarios = 0;
+int Gestor::capacidadeUsuarios = 10;
+
+Gestor** Gestor::gestores = new Gestor*[10];
+int Gestor::quantidadeGestores = 0;
+int Gestor::capacidadeGestores = 10;
+
+Estudante** Gestor::estudantes = new Estudante*[10];
+int Gestor::quantidadeEstudantes = 0;
+int Gestor::capacidadeEstudantes = 10;
+
+PosGraduacao** Gestor::posGraduandos = new PosGraduacao*[10];
+int Gestor::quantidadePos = 0;
+int Gestor::capacidadePos = 10;
+
+
 // Construtor
-Gestor::Gestor(std::string nome, std::string email, std::string senha, int nivelAcesso, Schema* db) : 
+Gestor::Gestor(std::string nome, std::string email, std::string senha, int nivelAcesso, Schema* db) :
     Usuario(nome, email, senha, nivelAcesso, db) {
 
     //Inicializa o ponteiro como nulo 
@@ -15,7 +34,25 @@ Gestor::Gestor(std::string nome, std::string email, std::string senha, int nivel
     };
 
 // Destrutor
-Gestor::~Gestor() {}
+Gestor::~Gestor() {
+    for (int i = 0; i < quantidadeUsuarios; i++) {
+        delete usuariosCarregados[i];
+    }
+    delete[] usuariosCarregados;
+    delete[] gestores;
+    delete[] estudantes;
+    delete[] posGraduandos;
+
+    quantidadeUsuarios = 0;
+    quantidadeGestores = 0;
+    quantidadeEstudantes = 0;
+    quantidadePos = 0;
+    usuariosCarregados = nullptr;
+    gestores = nullptr;
+    estudantes = nullptr;
+    posGraduandos = nullptr;
+
+}
 
 // Demais funções
 void Gestor::cadastrarUsuario() {
@@ -23,12 +60,12 @@ void Gestor::cadastrarUsuario() {
     std::cout << "Digite o tipo de usuario a cadastrar:\n";
     std::cout << "1. Gestor\n2. Pos-Graduando\n3. Aluno de Graduacao\n";
     int nivelAcesso; // Nivel de acesso aos Reagentes, 1 = Gestor, 2 = Graduacao e 3 = pos Graduacao
-    std::cin >> nivelAcesso; 
+    std::cin >> nivelAcesso;
 
     std::string nome, email, senha;
     std::string matricula, curso, nivel;
     int nivelInt; // Nivel do estudante (Graducao ou Pos-Graduacao)
-    
+
     std::cout << "Digite o nome do usuário: ";
     std::cin >> nome;
     std::cout << "Digite o email do usuário: ";
@@ -89,6 +126,121 @@ void Gestor::cadastrarUsuario() {
     }
 }
 
+//função que carrega os usuários do banco de dados para o array dinâmico
+void Gestor::carregarUsuarios() {
+    try{
+        Table usuarioTable = db->getTable("Usuario"); //pega a tabela usuario do banco
+        RowResult resultado = usuarioTable.select("id", "nome", "email", "senha", "nivelAcesso").execute();//seleciona os campos necessários
+
+        for (Row row : resultado) {
+            int nivel = row[4].get<int>();//pega o nivel de acesso do usuario
+            Usuario* u = nullptr;//ponteiro para objeto do tipo Usuario
+
+            //cria o objeto do tipo correto baseado no nivel de acesso
+            if (nivel == 1) {
+
+                u = new Gestor(row[1].get<std::string>(), row[2].get<std::string>(), row[3].get<std::string>(), nivel, db);
+            }
+            else if (nivel == 2) {
+                Table estudanteTable = db->getTable("Estudante");
+                RowResult r = estudanteTable.select("matricula", "curso", "nivel").where("id = :id").bind("id",row[0]).execute();
+                Row estudanteRow = r.fetchOne();
+                u = new Estudante(row[1].get<std::string>(), row[2].get<std::string>(), row[3].get<std::string>(), nivel, db, estudanteRow[1].get<std::string>(), estudanteRow[2].get<std::string>(), estudanteRow[3].get<std::string>());
+            }
+            else if (nivel == 3) {
+                Table estudanteTable = db->getTable("Estudante");
+                RowResult r = estudanteTable.select("matricula", "curso", "nivel").where("id = :id").bind("id",row[0]).execute();
+                Row estudanteRow = r.fetchOne();
+                u = new PosGraduacao(row[1].get<std::string>(), row[2].get<std::string>(), row[3].get<std::string>(), nivel, db, estudanteRow[1].get<std::string>(), estudanteRow[2].get<std::string>(), estudanteRow[3].get<std::string>());
+            }
+
+            u->setId(row[0].get<int>());//define o id do usuario
+
+            // Adiciona no vetor geral
+            if (quantidadeUsuarios == capacidadeUsuarios) {
+                int novaCapacidade = capacidadeUsuarios * 2;
+                Usuario** novo = new Usuario*[novaCapacidade];
+                for (int i = 0; i < quantidadeUsuarios; i++) novo[i] = usuariosCarregados[i];
+                delete[] usuariosCarregados;
+                usuariosCarregados = novo;
+                capacidadeUsuarios = novaCapacidade;
+            }
+            usuariosCarregados[quantidadeUsuarios++] = u;//adiciona o usuario no array geral
+
+            // Adiciona no vetor específico
+            if (nivel == 1) {
+                if (quantidadeGestores == capacidadeGestores) {
+                    int novaCapacidade = capacidadeGestores * 2;
+                    Gestor** novo = new Gestor*[novaCapacidade];
+                    for (int i = 0; i < quantidadeGestores; i++) novo[i] = gestores[i];
+                    delete[] gestores;
+                    gestores = novo;
+                    capacidadeGestores = novaCapacidade;
+                }
+                gestores[quantidadeGestores++] = (Gestor*)u;//adiciona o gestor no array de gestores
+            } else if (nivel == 2) {
+                if (quantidadeEstudantes == capacidadeEstudantes) {
+                    int novaCapacidade = capacidadeEstudantes * 2;
+                    Estudante** novo = new Estudante*[novaCapacidade];
+                    for (int i = 0; i < quantidadeEstudantes; i++) novo[i] = estudantes[i];
+                    delete[] estudantes;
+                    estudantes = novo;
+                    capacidadeEstudantes = novaCapacidade;
+                }
+                estudantes[quantidadeEstudantes++] = (Estudante*)u;//adiciona o estudante no array de estudantes
+            } else if (nivel == 3) {
+                if (quantidadePos == capacidadePos) {
+                    int novaCapacidade = capacidadePos * 2;
+                    PosGraduacao** novo = new PosGraduacao*[novaCapacidade];
+                    for (int i = 0; i < quantidadePos; i++) novo[i] = posGraduandos[i];
+                    delete[] posGraduandos;
+                    posGraduandos = novo;
+                    capacidadePos = novaCapacidade;
+                }
+                posGraduandos[quantidadePos++] = (PosGraduacao*)u;//adiciona o pos graduando no array de pos graduandos
+            }
+
+        }
+    } catch (const mysqlx::Error &err) {
+        std::cerr << "Erro ao carregar usuários: " << err.what() << std::endl;
+    }
+}
+//lista os usuários do laboratório gerenciado por este gestor
+void Gestor::listarUsuarios() {
+    //verifica se o gestor está vinculado a um laboratorio
+    if(_meuLaboratorio == nullptr) {
+        std::cout << "Este Gestor não está vinculado a um laboratorio." << std::endl;
+        return;
+    }
+
+    //cabeçalho da tabela
+    std::cout << "\n=== LISTANDO USUÁRIOS (via Gestor) ===" << std::endl;
+    std::cout << std::left
+              << std::setw(5)  << "ID"
+              << std::setw(20) << "Nome"
+              << std::setw(25) << "Email"
+              << std::setw(15) << "Tipo"
+              << "\n";
+    std::cout << std::string(65, '-') << "\n";
+    //laco que percorre o vetor de usuarios do laboratorio
+    for (Usuario* u : _meuLaboratorio->getVetorUsuarios()) {
+        std::string tipo;
+        if (u->getNivelAcesso() == 1) tipo = "Gestor";
+        else if (u->getNivelAcesso() == 2) tipo = "Graduacao";
+        else if (u->getNivelAcesso() == 3) tipo = "Pos-Graduacao";
+        else tipo = "Desconhecido";
+
+        std::cout << std::left
+                  << std::setw(5)  << u->getId()
+                  << std::setw(20) << u->getNome()
+                  << std::setw(25) << u->getEmail()
+                  << std::setw(15) << tipo
+                  << "\n";
+    }
+    std::cout << std::string(65, '-') << "\n";
+}
+
+
 void Gestor::deletarUsuario() {
     std::cout << "Digite o email do usuário a ser deletado: ";
     std::string email;
@@ -101,8 +253,8 @@ void Gestor::deletarUsuario() {
                                 .where("email = :email")
                                 .bind("email", email)
                                 .execute();
-        
-        //Caso não encontre o usuário com o email fornecido                      
+
+        //Caso não encontre o usuário com o email fornecido
         if (result.count() == 0) {
             std::cout << "Usuário com email " << email << " não encontrado." << std::endl;
             return;
@@ -110,7 +262,7 @@ void Gestor::deletarUsuario() {
         Row row = result.fetchOne();//pega a primeira linha do resultado
         int usuarioId = row[0];// ID do usuário a ser deletado
         int nivelAcesso = row[1];// Nível de acesso do usuário a ser deletado
-        
+
         //Deleta das tabelas especializadas conforme o tipo de usuário
         if (nivelAcesso == 1) { // Gestor
             db->getTable("Gestor")
@@ -138,7 +290,7 @@ void Gestor::deletarUsuario() {
                     .where("id = :id")
                     .bind("id", usuarioId)
                     .execute();
-        
+
         std::cout << "Usuário deletado com sucesso!" << std::endl;// Mensagem de sucesso
     } catch (const mysqlx::Error &err) {
         std::cerr << "Erro ao deletar usuário: " << err.what() << std::endl;//mensagem de erro
@@ -269,7 +421,7 @@ void Gestor::cadastrarReagente() {
     // Variaveis para guardar os dados da tabela base Reagente
     std::string nome, dataValidade, local, unidade, marca, codRef;
     int quantidade, quantidadeCritica, nivelAcesso;
-    
+
     std::cout << "Cadastro de Novo Reagente \n";
     std::cout << "Nome: ";
     std::cin.ignore(); // Ignora o 'Enter' anterior
@@ -304,23 +456,48 @@ void Gestor::cadastrarReagente() {
     double densidade = 0.0;
     double volume = 0.0;
     double massa = 0.0;
-    std::string estadoFisico; 
+    std::string estadoFisico;
 
     if (tipo == 1) { // Liquido
         std::cout << "Densidade: ";
         std::cin >> densidade;
         std::cout << "Volume: ";
         std::cin >> volume;
-        
+
     } else if (tipo == 2) { // Solido
         std::cout << "Massa: ";
         std::cin >> massa;
-        
+
         // Pergunta o estado fisico que é um atributo da classe ReagenteSolido
         std::cout << "Estado Fisico (ex: 'po', 'cristal'): ";
         std::cin.ignore(); // Ignora o 'Enter' da leitura da massa
         std::getline(std::cin, estadoFisico);
     }
+    // 3. Salva no Banco de Dados
+    try {
+        // Insere na tabela base "Reagente"
+        // O 'db' e herdado de Usuario e esta disponivel aqui
+        Table reagenteTable = db->getTable("Reagente");
+
+        // Monta a query de insercao com os dados basicos
+        Result res = reagenteTable.insert(
+            "nome", "dataValidade", "quantidade", "quantidadeCritica",
+            "localArmazenamento", "nivelAcesso", "unidadeMedida", "marca", "codigoReferencia"
+        ).values(nome, dataValidade, quantidade, quantidadeCritica,
+                 local, nivelAcesso, unidade, marca, codRef)
+         .execute(); // Executa a insercao no DB
+
+        // Recupera o ID do reagente que acabou de ser criado
+        // (Precisamos desse ID para ligar com a tabela Liquido/Solido)
+        int reagenteId = res.getAutoIncrementValue();
+
+        // Insere nas tabelas especializadas (Liquido ou Solido)
+        if (tipo == 1) {
+            // Se for liquido, insere na tabela 'ReagenteLiquido'
+            db->getTable("ReagenteLiquido")
+                .insert("id", "densidade", "volume")
+                .values(reagenteId, densidade, volume)
+                .execute();
 
     if (laboratorio) { //
         // Delega a tarefa de cadastrar regaente para o laboratorio
@@ -332,45 +509,69 @@ void Gestor::cadastrarReagente() {
     } else {
         // Mensagem de erro se o gestor nao gerencia um laboratorio
         std::cerr << "ERRO: Gestor nao esta alocado a um laboratorio." << std::endl;
+            // Imprime a confirmacao para o usuario
+            std::cout << "Reagente Liquido '" << nome << "' cadastrado com sucesso!\n";
+
+        } else if (tipo == 2) {
+            // Se for solido, insere na tabela 'ReagenteSolido'
+            db->getTable("ReagenteSolido")
+                .insert("id", "massa", "estadoFisico")
+                .values(reagenteId, massa, estadoFisico)
+                .execute();
+
+            // Imprime a confirmacao para o usuario
+            std::cout << "Reagente Solido '" << nome << "' cadastrado com sucesso!\n";
+        }
+
+    } catch (const mysqlx::Error &err) {
+        // Se qualquer operacao do 'try' falhar, captura o erro
+        // (Ex: se o banco estiver offline ou a tabela nao existir)
+        std::cerr << "Erro ao cadastrar reagente: " << err.what() << std::endl;
     }
+
 }
-    
-// Implementação da função virtual. O Gestor ignora a checagem de nível.
-void Gestor::acessarReagenteRestrito(int idReagente) {
-    
-    std::cout << "\n(Gestor) Acessando Reagente ID: " << idReagente << "\n";
-    if (db == nullptr) {
-        std::cerr << "ERRO: Gestor não está conectado ao banco." << std::endl;
-        return;
+
+    // Metodo para vincular o gestor a um laboratorio
+    void Gestor::setLaboratorio(Laboratorio* lab) {
+        this-laboratorio = lab;
     }
 
-    try {
-        Table reagenteTable = db->getTable("Reagente");
-        
-        // Busca o reagente pelo ID
-        RowResult res = reagenteTable.select(
-            "id", "nome", "quantidade", "unidadeMedida", 
-            "localArmazenamento", "dataValidade", "nivelAcesso"
-        ).where("id = :id").bind("id", idReagente).execute();
+    // Implementação da função virtual. O Gestor ignora a checagem de nível.
+    void Gestor::acessarReagenteRestrito(int idReagente) {
 
-        if (res.count() == 0) {
-            std::cout << "Reagente com ID " << idReagente << " não encontrado." << std::endl;
+        std::cout << "\n(Gestor) Acessando Reagente ID: " << idReagente << "\n";
+        if (db == nullptr) {
+            std::cerr << "ERRO: Gestor não está conectado ao banco." << std::endl;
             return;
         }
 
-        // Pega os detalhes
-        Row row = res.fetchOne();
+        try {
+            Table reagenteTable = db->getTable("Reagente");
 
-        // O Gestor imprime tudo (não há checagem de nível)
-        std::cout << "Acesso Permitido (Nível Gestor):\n";
-        std::cout << "Nome:    " << row[1].get<std::string>() << "\n";
-        std::cout << "Qtde:    " << row[2].get<int>() << " " << row[3].get<std::string>() << "\n";
-        std::cout << "Local:   " << row[4].get<std::string>() << "\n";
-        std::cout << "Validade: " << row[5].get<std::string>() << "\n";
-        std::cout << "(Nível do reagente: " << row[6].get<int>() << ")\n";
-        std::cout << "-------------------------------------\n";
+            // Busca o reagente pelo ID
+            RowResult res = reagenteTable.select(
+                "id", "nome", "quantidade", "unidadeMedida",
+                "localArmazenamento", "dataValidade", "nivelAcesso"
+            ).where("id = :id").bind("id", idReagente).execute();
 
-    } catch (const mysqlx::Error &err) {
-        std::cerr << "Erro ao acessar reagente: " << err.what() << std::endl;
+            if (res.count() == 0) {
+                std::cout << "Reagente com ID " << idReagente << " não encontrado." << std::endl;
+                return;
+            }
+
+            // Pega os detalhes
+            Row row = res.fetchOne();
+
+            // O Gestor imprime tudo (não há checagem de nível)
+            std::cout << "Acesso Permitido (Nível Gestor):\n";
+            std::cout << "Nome:    " << row[1].get<std::string>() << "\n";
+            std::cout << "Qtde:    " << row[2].get<int>() << " " << row[3].get<std::string>() << "\n";
+            std::cout << "Local:   " << row[4].get<std::string>() << "\n";
+            std::cout << "Validade: " << row[5].get<std::string>() << "\n";
+            std::cout << "(Nível do reagente: " << row[6].get<int>() << ")\n";
+            std::cout << "-------------------------------------\n";
+
+        } catch (const mysqlx::Error &err) {
+            std::cerr << "Erro ao acessar reagente: " << err.what() << std::endl;
+        }
     }
-}

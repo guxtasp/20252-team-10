@@ -1,13 +1,13 @@
-#include "reagenteliquido.h" 
+#include "reagenteLiquido.h"
 
 //Construtor
-ReagenteLiquido::ReagenteLiquido(int id, std::string nome, std::string dataValidade, int quantidade, 
-                                 int quantidadeCritica, std::string localArmazenamento, int nivelAcesso, 
+ReagenteLiquido::ReagenteLiquido(int id, std::string nome, std::string dataValidade, int quantidade,
+                                 int quantidadeCritica, std::string localArmazenamento, int nivelAcesso,
                                  std::string unidadeMedida, std::string marca, std::string codigoReferencia,
                                  double densidade, double volume)
 
-    // Chama o construtor de Reagente 
-    : Reagente(id, nome, dataValidade, quantidade, quantidadeCritica, 
+    // Chama o construtor de Reagente
+    : Reagente(id, nome, dataValidade, quantidade, quantidadeCritica,
                localArmazenamento, nivelAcesso, unidadeMedida, marca, codigoReferencia)
 {
     // O construtor inicializa os atributos que sao dele
@@ -16,7 +16,7 @@ ReagenteLiquido::ReagenteLiquido(int id, std::string nome, std::string dataValid
 }
 
 //Destrutor
-ReagenteLiquido::~ReagenteLiquido() 
+ReagenteLiquido::~ReagenteLiquido()
 {
 
 }

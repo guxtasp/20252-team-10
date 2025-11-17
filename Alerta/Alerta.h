@@ -2,6 +2,7 @@
 #define ALERTA_H
 #include <ctime>
 #include <string>
+#include "../Reagente/reagente.h"
 
 class Alerta
 {
@@ -12,10 +13,11 @@ private:
     std::string _dataEmissao; // tempo formatado para leitura
     unsigned int _tipo;
     std::string _situacao; // conteúdo do alerta
+    Reagente * _reagenteEmAlerta;
 
 public:
     // Construtor
-    Alerta(unsigned int tipo);
+    Alerta(unsigned int tipo, Reagente *reagenteEmAlerta);
 
     // Destrutor
     ~Alerta();

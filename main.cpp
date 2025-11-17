@@ -59,7 +59,7 @@ int main() {
                 //cadastra o gestorAdmin no banco de dados
                 Table usuarioTable = db->getTable("Usuario"); // Insere na tabela Usuario (base)
                 Result res = usuarioTable.insert("nome", "email", "senha", "nivelAcesso") //Insere os dados básicos
-                    .values(gestorAdmin.getNome(), gestorAdmin.getEmail(), "senha123", 1).execute(); // Define os valores e executa a inserção   
+                    .values(gestorAdmin.getNome(), gestorAdmin.getEmail(), "senha123", 1).execute(); // Define os valores e executa a inserção
                 int usuarioId = res.getAutoIncrementValue(); // Recupera o ID do usuário recém-inserido
                 db->getTable("Gestor") // Insere na tabela Gestor
                     .insert("id", "cadastrado_por_gestor_id") // Id do gestor e quem cadastrou
@@ -72,7 +72,7 @@ int main() {
         } else {
             Row row = resultado.fetchOne(); // Obtém a primeira linha do resultado
             gestorAdmin.setId(row[0]);  // atualiza o ID do objeto gestorAdmin com o ID do banco de dados
-            std::cout << "Gestor já existe no banco. ID: " 
+            std::cout << "Gestor já existe no banco. ID: "
                         << gestorAdmin.getId() << std::endl; // Informa que o gestor já existe
         }
     } catch (const mysqlx::Error &err) {
@@ -81,7 +81,7 @@ int main() {
         std::cerr << "Erro genérico: " << ex.what() << std::endl;
     } catch (...) {
         std::cerr << "Erro desconhecido ao executar o programa." << std::endl;
-    }    
+    }
     // ===================== Sistema =====================
     // ===================== Login =====================
     Laboratorio::listarLaboratorios(db); // Carrega os laboratorios
@@ -100,14 +100,14 @@ int main() {
             std::cout << "Senha: " << std::endl;  // Solicita a senha
             std::cin >> senha;
             usuarioTemp.validarSenha(senha); // Valida o formato da senha
-        
+
         if(Usuario::fazerLogin(db, email, senha, &usuarioTemp)){ // Tenta fazer o login
             // Se o login for bem-sucedido, cria o objeto apropriado com base no nível de acesso
             int nivelAcessoColetado = usuarioTemp.getNivelAcesso();
             if(nivelAcessoColetado == 1){ // Gestor
                 //Instancia um objeto Gestor no ponteiro inteligente
                 usuarioLogado = std::make_unique<Gestor>(usuarioTemp.getNome(), usuarioTemp.getEmail(),
-                                                        usuarioTemp.getSenha(), usuarioTemp.getNivelAcesso(), db); 
+                                                        usuarioTemp.getSenha(), usuarioTemp.getNivelAcesso(), db);
                 usuarioLogado->setId(usuarioTemp.getId());
                 std::cout << "Login bem-sucedido! Bem-vindo, Gestor " << usuarioLogado->getNome() << ".\n" << std::endl;
                 break;
@@ -175,8 +175,12 @@ int main() {
                 std::cout << "Versão não disponivel no momento.\n";
             }
         }
+    Laboratorio l(1, "LabUFV", "DBB", db);
+    l.listarReagentes();
 
     // Limpa todos os laboratórios alocados dinamicamente
     Laboratorio::limparLaboratorios();
+
+   
     return 0;
 }
