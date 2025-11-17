@@ -9,7 +9,7 @@ Usuario::Usuario(std::string nome, std::string email, std::string senha, int niv
 // o ID será atualizado com o valor do banco de dados
 
 // Construtor sem parametros
-Usuario::Usuario() 
+Usuario::Usuario()
     : id(-1), nome(""), email(""), senha(""), nivelAcesso(0), db(nullptr) {}
 
 
@@ -83,14 +83,14 @@ bool Usuario::fazerLogin(mysqlx::Schema* db, const std::string& email, const std
             .bind("email", email)
             .bind("senha", senha)
             .execute();
-        
+
         if (resultado.count() == 0) {
             std::cerr << "[ERRO] Usuário não encontrado. Senha e/ou e-mail estão incorretos\n";
             return false;
         }
 
         Row row = resultado.fetchOne();
-        
+
         usuarioLogado->setId(row[0].get<int>());
         usuarioLogado->setNome(row[1].get<std::string>());
         usuarioLogado->setEmail(row[2].get<std::string>());
@@ -156,9 +156,9 @@ void Usuario::alterarSenha(std::string senhaAntiga, std::string senhaNova) {
 
 //Implementacao do metodo para consultar reagentes no DB.
 void Usuario::consultarReagente() {
-    
+
     std::cout << "\n Consultando Reagentes no Banco de Dados \n";
-    
+
     // Verificacao de seguranca
     if (db == nullptr) {
         std::cerr << "ERRO: Usuario nao esta conectado ao banco de dados." << std::endl;
@@ -168,10 +168,10 @@ void Usuario::consultarReagente() {
     try {
         // Pega a tabela 'Reagente'
         Table reagenteTable = db->getTable("Reagente");
-        
+
         // Seleciona as colunas que queremos mostrar
         RowResult res = reagenteTable.select(
-            "id", "nome", "quantidade", "unidadeMedida", 
+            "id", "nome", "quantidade", "unidadeMedida",
             "localArmazenamento", "dataValidade", "nivelAcesso"
         ).execute();
 
@@ -181,14 +181,14 @@ void Usuario::consultarReagente() {
             return;
         }
 
-        std::cout << "Exibindo reagentes compativeis com seu nivel de acesso (" 
+        std::cout << "Exibindo reagentes compativeis com seu nivel de acesso ("
                   << this->nivelAcesso << "):\n";
-        
+
         int reagentesExibidos = 0;
 
         // analisa sobre todas as linhas (reagentes) que o banco encontrou
         for (Row row : res.fetchAll()) {
-            
+
             // Pega o nivel de acesso necessario para este reagente
             int nivelDoReagente = row[6].get<int>();
 
@@ -197,21 +197,21 @@ void Usuario::consultarReagente() {
             // Ex: Gestor (1) <= Reagente (3) -> (Pode ver)
             // Ex: Grad (3) <= Reagente (1) -> (NAO pode ver)
             if (this->nivelAcesso <= nivelDoReagente) {
-                
+
                 // Se o usuario tem permissao, imprime
-                std::cout << "Nome:    " << row[1].get<std::string>() 
+                std::cout << "Nome:    " << row[1].get<std::string>()
                           << " (ID: " << row[0].get<int>() << ")\n";
-                std::cout << "Qtde:    " << row[2].get<int>() 
+                std::cout << "Qtde:    " << row[2].get<int>()
                           << " " << row[3].get<std::string>() << "\n";
                 std::cout << "Local:   " << row[4].get<std::string>() << "\n";
                 std::cout << "Validade: " << row[5].get<std::string>() << "\n";
                 std::cout << "(Nivel de acesso necessario: " << nivelDoReagente << ")\n";
-                
+
                 reagentesExibidos++;
             }
             // Se o usuario nao tem permissao, o 'if' falha e o reagente e simplesmente ignorado (nao impresso).
         }
-        
+
         if (reagentesExibidos == 0) {
             std::cout << "Nenhum reagente encontrado para o seu nivel de acesso.\n";
         }
@@ -220,4 +220,8 @@ void Usuario::consultarReagente() {
         // Captura qualquer erro do banco de dados (ex: tabela nao existe)
         std::cerr << "Erro ao consultar reagentes: " << err.what() << std::endl;
     }
+}
+
+void Usuario::acessarReagenteRestrito(int idReagente){
+   std::cout << "Somente gestores podem acessar reagentes Restritos" << std::endl;
 }

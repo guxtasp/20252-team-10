@@ -1,12 +1,12 @@
 
-#include "Retirada.h"
+#include "../Retirada/Retirada.h"
 #include <ctime>
 #include <sstream>
 #include <iomanip>
 
 Retirada::Retirada(int id, Usuario* usuario, Reagente* reagente, float quantidade)
     : id(id), usuario(usuario), reagente(reagente), quantidade(quantidade), confirmada(false) {
-    
+
     // Gerar data/hora atual
     std::time_t now = std::time(nullptr);
     std::tm* localTime = std::localtime(&now);
@@ -20,21 +20,21 @@ std::string Retirada::confirmarRetirada() {
     if (quantidade <= 0) {
         return "Quantidade tem ser maior que zero";
     }
-    
+
     if (quantidade > reagente->getQuantidade()) {
         return "Quantidade indisponivel. Disponivel: " + std::to_string(reagente->getQuantidade());
     }
-    
+
     // Atualiza estoque
     reagente->setQuantidade(reagente->getQuantidade() - quantidade);
     confirmada = true;
-    
+
     // Verifica nivel critico
     if (reagente->getQuantidade() <= reagente->getQuantidadeCritica()) {
-        return "Retirada realizada! ALERTA: quantidade critica em estoque (" + 
+        return "Retirada realizada! ALERTA: quantidade critica em estoque (" +
                std::to_string(reagente->getQuantidade()) + ")";
     }
-    
+
     return "Retirada realizada";
 }
 

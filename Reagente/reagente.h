@@ -19,12 +19,14 @@ private:
 
 public:
     //Construtor
-    Reagente(int id, std::string nome, std::string dataValidade, int quantidade, 
-             int quantidadeCritica, std::string localArmazenamento, int nivelAcesso, 
+    Reagente(int id, std::string nome, std::string dataValidade, int quantidade,
+             int quantidadeCritica, std::string localArmazenamento, int nivelAcesso,
              std::string unidadeMedida, std::string marca, std::string codigoReferencia);
-    
+
+    Reagente();
+
     //Destrutor virtual, garante que o destrutor da classe filha seja chamado primeiro
-    virtual ~Reagente(); 
+    virtual ~Reagente();
 
     // Gets
     std::string getNome();
@@ -48,6 +50,12 @@ public:
     void setUnidadeMedida(std::string unidadeMedida);
     void setMarca(std::string marca);
     void setCodigoReferencia(std::string codigoReferencia);
+
+
+    //Outros metodos
+    bool estaVencido();
+    void acionarAlerta(unsigned int tipo);
+    bool verificarNivelCritico();
 
 };
 

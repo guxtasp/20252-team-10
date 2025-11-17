@@ -3,20 +3,37 @@
 
 #include "../Usuario/usuario.h"
 #include <string>
-#include <mysql-cppconn-8/mysqlx/xdevapi.h>
-#include "../Reagente/Reagente.h"
+#include <mysql-cppconn/mysqlx/xdevapi.h>
+#include "../Reagente/reagente.h"
 #include "../Laboratorio/Laboratorio.h"
+#include "../PosGraduacao/posgraduacao.h"
 
 
 using namespace mysqlx;
 
-class Gestor : public Usuario{
+class Gestor : public Usuario {
     private:
     // O laboratorio que este Gestor gerencia
     Laboratorio* _meuLaboratorio;
     public:
         //Construtor
         Gestor(std::string nome, std::string email, std::string senha, int nivelAcesso, Schema* db);
+
+        static Usuario** usuariosCarregados;
+        static int quantidadeUsuarios;
+        static int capacidadeUsuarios;
+
+        static Gestor** gestores;
+        static int quantidadeGestores;
+        static int capacidadeGestores;
+
+        static Estudante** estudantes;
+        static int quantidadeEstudantes;
+        static int capacidadeEstudantes;
+
+        static PosGraduacao** posGraduandos;
+        static int quantidadePos;
+        static int capacidadePos;
 
         // Destrutor
         ~Gestor();
@@ -25,6 +42,7 @@ class Gestor : public Usuario{
         void cadastrarUsuario();
         void deletarUsuario();
         void listarUsuarios();
+        void carregarUsuarios();
 
         //sets
         void setLaboratorio(Laboratorio* lab);
