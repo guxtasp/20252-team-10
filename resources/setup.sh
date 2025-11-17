@@ -2,6 +2,14 @@
 
 echo "Instalando dependências..."
 
+sudo apt-get update
+
+sudo apt-get install lsb-release
+
+sudo apt-get install gnupg
+
+sudo apt-get install wget
+
 mkdir temp
 
 cd temp
